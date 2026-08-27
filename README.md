@@ -240,6 +240,34 @@ Framework Emulator alcanza con `KB_TEAMS_HABILITADO=true` y apuntarlo a
 Los gates viven en `ArquitecturaTest` desde el primer commit: una frontera que solo existe en un
 documento se erosiona en la tercera semana.
 
+### Agentes de IA (Claude Code)
+
+Este repositorio trae instrumentación para Claude Code: servidores MCP (Protocolo de Contexto de
+Modelo — deja que el agente consulte sistemas externos en vivo) en `.mcp.json`, y hooks (scripts
+que se disparan en ciertos eventos del agente) en `.claude/settings.json` /
+`scripts/agent-hooks/`. **Ambos son exclusivos de Claude Code** — ningún otro agente lee estos
+archivos.
+
+Requisitos para que los hooks funcionen: Git Bash (viene con Git for Windows) y el wrapper de
+Maven (`./mvnw`, ya incluido). Sin Git Bash, Claude Code cae a PowerShell y los scripts `.sh` no
+se ejecutan.
+
+Variables de entorno que esperan los servidores MCP (expórtalas antes de abrir Claude Code, o
+ponlas en tu `.env` de shell — nunca en `.mcp.json`):
+
+| Variable | Servidor | Para qué |
+|---|---|---|
+| `GITHUB_PAT` | `ark_github` | Token de acceso personal de GitHub, para issues/PRs/Actions |
+| `APP_DSN` | `ark_dbhub` | Cadena de conexión a Postgres (`postgres://user:pass@host:5432/db?sslmode=require`) — el agente queda con acceso de lectura al esquema y a los datos reales |
+
+Al clonar el repo, `.mcp.json` queda en estado `⏸ Pending approval` hasta que aceptes confiar en
+el workspace: abre `claude` en la carpeta, acepta el diálogo de confianza y corre `/mcp` para
+confirmar que cada servidor conecta.
+
+Si instalaste el hook de registro de auditoría, `logs/audit.log` (ignorado por git) guarda el
+`tool_input` completo de cada llamada a herramienta del agente — puede incluir rutas, fragmentos
+de código o cualquier dato que haya pasado por una herramienta.
+
 ## Licencia
 
 MIT — ver [LICENSE](LICENSE).

@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := help
-.PHONY: help up gpu-up up-bonsai down-bonsai up-ministral down-ministral up-qwen35 down-qwen35 up-nemotron down-nemotron up-granite41 down-granite41 up-phi4mini down-phi4mini up-qwen25 down-qwen25 down restart logs ps build test verify pull-models pull-reranker pull-bonsai-gguf pull-ministral pull-qwen35 pull-nemotron pull-granite41 pull-phi4mini pull-qwen25 pin-embeddings-cpu seed ingest ingest-repos ingest-teams ingest-azdo psql health clean
+.PHONY: help up gpu-up up-bonsai down-bonsai up-ministral down-ministral up-qwen35 down-qwen35 up-nemotron down-nemotron up-granite41 down-granite41 up-phi4mini down-phi4mini up-qwen25 down-qwen25 down restart logs ps build test verify pull-models pull-reranker pull-bonsai-gguf pull-ministral pull-qwen35 pull-nemotron pull-granite41 pull-phi4mini pull-qwen25 pin-embeddings-cpu seed ingest ingest-repos ingest-teams ingest-azdo psql health clean \
+  format lint secrets check ci hooks
 
 COMPOSE           := docker compose
 COMPOSE_GPU       := docker compose -f compose.yml -f compose.gpu.yml
@@ -230,3 +231,23 @@ psql:  ## Abre una sesion psql contra la base
 
 clean:  ## Borra artefactos de compilacion (NO toca los modelos ni la base)
 	./mvnw -B clean
+
+## ---------------------------------------------------------------- quality gates
+
+format:  ## Apply code formatting (Spotless)
+	./mvnw -q spotless:apply
+
+lint:  ## Verify code style and static rules (gate: Spotless + Checkstyle)
+	./mvnw -q spotless:check checkstyle:check
+
+secrets:  ## Scan the working tree for committed secrets
+	gitleaks detect --no-banner --redact
+
+check: lint build test  ## Single local confidence signal
+	@echo "OK -- the repo is green"
+
+ci: lint build test secrets  ## What the CI pipeline runs
+	@echo "OK -- CI gates passed"
+
+hooks:  ## Install git hooks (Lefthook)
+	lefthook install

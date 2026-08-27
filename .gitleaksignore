@@ -1,0 +1,6 @@
+# One fingerprint per verified false positive, never a broad path or rule exclusion.
+# Format: gitleaks detect --source . --no-banner --redact  (copy the Fingerprint field)
+
+# Makefile:52 RERANKER_TOKENIZER_SHA256 -- a public checksum used to verify a downloaded
+# ONNX model file (see `verificar_sha256` in the Makefile), not a credential.
+64902676d834aa44d0885a5e1a38b877bc058c26:Makefile:generic-api-key:52

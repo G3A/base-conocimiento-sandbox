@@ -20,6 +20,9 @@ target/
 *.pid
 .jqwik-database
 
+# AI agent audit log (full tool_input, never committed)
+logs/
+
 # Carpetas de dependencias Node (en cualquier nivel)
 node_modules/
 

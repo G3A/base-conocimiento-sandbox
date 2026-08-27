@@ -31,19 +31,26 @@ Lee estos docs antes de hacer cambios estructurales.
 ```bash
 cp .env.example .env && make up      # levanta db, ollama, docling-serve, api
 make pull-models                     # una sola vez: embeddings + reranker
+make hooks                           # una sola vez: instala los git hooks (Lefthook)
 ./mvnw test                          # pruebas, incluidos los gates de arquitectura
 ./mvnw verify                        # build completo
 make build                           # jar sin pruebas (./mvnw -B clean package -DskipTests)
+make check                           # lint + build + test: la señal local de "el repo está bien"
 ```
 
-`make help` lista el resto (perfiles de modelo, `make seed`/`ingest`, `make psql`).
-Prefiere el `Makefile` y `./mvnw` sobre invocaciones sueltas de Docker/Maven.
+`make help` lista el resto (perfiles de modelo, `make seed`/`ingest`, `make psql`,
+`make format`/`lint`/`secrets`/`ci`). Prefiere el `Makefile` y `./mvnw` sobre invocaciones
+sueltas de Docker/Maven.
+
+Requiere JDK 25 (`<java.version>` en `pom.xml`) — si `./mvnw -v` reporta un JDK menor, apunta
+`JAVA_HOME` a un JDK 25 instalado antes de compilar; el runtime target no baja aunque el JDK
+por defecto de la máquina sea otro.
 
 ## Reglas no obvias
 
 - **Los adaptadores son piel**: `web` y `teams` solo pueden cruzar por la fachada
   `orquestacion.Consultar` — `ArquitecturaTest` (ArchUnit) rompe el build si alguno
-  llega directo a `recuperacion`, `ingesta`, `modelos` o `llm`.
+  llega directo a `recuperacion`, `ingesta`, `modelos`, `llm` o `seguridad`.
 - **Versiones gestionadas por BOM**: 4 BOMs (`spring-modulith-bom`, `spring-ai-bom`,
   `testcontainers-bom`, `arconia-bom`) fijan versión — no le agregues `<version>` propia
   a una dependencia ya cubierta.
@@ -60,9 +67,19 @@ property-based, WireMock para Bot Framework/Graph/Azure DevOps. Detalle en `docs
 
 ## Estilo de código
 
-Sin Checkstyle, Spotless, SpotBugs ni PMD configurados — solo ArchUnit para fronteras de
-módulos. Sigue las convenciones ya presentes en el código (constructor injection, records
-para `*Propiedades`, paquetes `internal` implícitos por Modulith).
+`google-java-format` vía Spotless (`make format` aplica, `make lint` verifica) más Checkstyle
+(`checkstyle.xml`, imports/naming/tamaño — no reformatea, solo falla) para lo que Spotless no
+cubre. `-Werror` en `maven-compiler-plugin`: cualquier warning del compilador rompe el build.
+Sin SpotBugs ni PMD. Sigue las convenciones ya presentes en el código (constructor injection,
+records para `*Propiedades`, paquetes `internal` implícitos por Modulith, `log` en minúscula
+para el logger SLF4J — así lo permite `checkstyle.xml`, no lo prohíbas).
+
+## CI y hooks locales
+
+`.github/workflows/ci.yml` corre `make ci` (lint + build + test + secrets) en cada push y pull
+request; JDK 25 vía `actions/setup-java`, mismo que `pom.xml`. Localmente, `make hooks` instala
+Lefthook: pre-commit verifica estilo y escanea secretos en lo staged, pre-push corre
+`make check`. Escape hatch: `LEFTHOOK=0 git commit …`.
 
 ## Seguridad
 
@@ -70,3 +87,5 @@ para `*Propiedades`, paquetes `internal` implícitos por Modulith).
 - No registres secretos, tokens ni información personal en logs.
 - Asume que cualquier cosa en este repo es legible por un agente de IA — nunca pegues
   secretos aquí.
+- `gitleaks` escanea en pre-commit y CI (`.gitleaks.toml`). Un falso positivo verificado se
+  silencia por su *fingerprint* exacto en `.gitleaksignore` — nunca por ruta de archivo.
