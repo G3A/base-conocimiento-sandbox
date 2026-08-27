@@ -18,10 +18,9 @@
   <description>Base de conocimiento interna con recuperacion hibrida, 100% local</description>
 
   <properties>
-    <!-- Java 21 LTS: es lo instalado en la maquina de desarrollo y Boot 4.1 lo soporta
-         plenamente (linea base 17). Subir a 25 es cambiar solo esta linea mas los
-         tags del Dockerfile. -->
-    <java.version>21</java.version>
+    <!-- JDK 25 LTS: coincide con los tags eclipse-temurin:25 del Dockerfile (deps,
+         build y runtime). Boot 4.1 lo soporta plenamente (linea base 17). -->
+    <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Versiones fijadas, sin rangos: ver plan, riesgo "Spring AI 2.0 y Modulith 2.1 son recientes" -->
