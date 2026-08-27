@@ -24,7 +24,8 @@ class StreamsEnCursoRepositorio {
       String projectId,
       String texto,
       List<Cita> citas,
-      String reformulacion) {}
+      String reformulacion,
+      Long queryLogId) {}
 
   private final JdbcClient jdbc;
 
@@ -70,36 +71,42 @@ class StreamsEnCursoRepositorio {
 
   /**
    * {@code estado}: "completo" o "error" -- nunca "en_curso" desde aca, eso solo lo pone {@link
-   * #iniciar}.
+   * #iniciar}. {@code queryLogId} es {@code null} en el camino de error (nunca se llego a escribir
+   * en {@code query_log}) -- ver el javadoc de {@code Consultar.EstadoStream}.
    */
-  void finalizar(long conversacionId, String estado, String texto) {
+  void finalizar(long conversacionId, String estado, String texto, Long queryLogId) {
     jdbc.sql(
             """
-                        UPDATE streams_en_curso SET estado = :estado, texto = :texto, actualizado_en = now()
+                        UPDATE streams_en_curso
+                        SET estado = :estado, texto = :texto, query_log_id = :queryLogId, actualizado_en = now()
                         WHERE conversacion_id = :conversacionId
                         """)
         .param("conversacionId", conversacionId)
         .param("estado", estado)
         .param("texto", texto)
+        .param("queryLogId", queryLogId)
         .update();
   }
 
   Optional<Estado> buscar(long conversacionId) {
     return jdbc.sql(
             """
-                        SELECT estado, pregunta, project_id, texto, citas, reformulacion
+                        SELECT estado, pregunta, project_id, texto, citas, reformulacion, query_log_id
                         FROM streams_en_curso WHERE conversacion_id = :conversacionId
                         """)
         .param("conversacionId", conversacionId)
         .query(
-            (rs, n) ->
-                new Estado(
-                    rs.getString("estado"),
-                    rs.getString("pregunta"),
-                    rs.getString("project_id"),
-                    rs.getString("texto"),
-                    Json.leerCitas(rs.getString("citas")),
-                    rs.getString("reformulacion")))
+            (rs, n) -> {
+              long queryLogId = rs.getLong("query_log_id");
+              return new Estado(
+                  rs.getString("estado"),
+                  rs.getString("pregunta"),
+                  rs.getString("project_id"),
+                  rs.getString("texto"),
+                  Json.leerCitas(rs.getString("citas")),
+                  rs.getString("reformulacion"),
+                  rs.wasNull() ? null : queryLogId);
+            })
         .optional();
   }
 }

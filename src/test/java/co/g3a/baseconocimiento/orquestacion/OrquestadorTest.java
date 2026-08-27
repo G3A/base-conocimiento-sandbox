@@ -756,9 +756,10 @@ class OrquestadorTest {
         resultado.texto().collectList().map(partes -> String.join("", partes)).block();
 
     assertThat(textoCompleto).isEqualTo("Respuesta final.");
+    assertThat(resultado.queryLogId().block()).isEqualTo(1L);
     verify(streamsEnCurso).iniciar(42L, "¿Que es esto?", "default");
     verify(streamsEnCurso).actualizarCitas(eq(42L), any(), any());
-    verify(streamsEnCurso).finalizar(42L, "completo", "Respuesta final.");
+    verify(streamsEnCurso).finalizar(42L, "completo", "Respuesta final.", 1L);
   }
 
   private static Herramienta herramientaFalsa(String nombre, Fragmento... fragmentos) {

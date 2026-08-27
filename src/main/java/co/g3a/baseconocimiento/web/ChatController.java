@@ -7,6 +7,8 @@ import co.g3a.baseconocimiento.compartido.Dominio.ProyectoId;
 import co.g3a.baseconocimiento.orquestacion.Consultar;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -107,10 +109,26 @@ class ChatController {
                         .<Object>data(Json.escribir(token))
                         .build());
 
+    // Se suscribe recien despues de que eventosTexto agota su Flux (Flux.concat
+    // es secuencial) -- para ese momento el doOnComplete de Orquestador ya
+    // corrio y el Mono tiene el id real. Si el stream termino en error o se
+    // cancelo antes, el Mono nunca emite y este tramo del concat simplemente
+    // no manda nada (no rompe la secuencia).
+    Flux<ServerSentEvent<Object>> eventoQueryLogId =
+        resultado
+            .queryLogId()
+            .map(
+                id ->
+                    ServerSentEvent.builder()
+                        .event("queryLogId")
+                        .<Object>data(String.valueOf(id))
+                        .build())
+            .flux();
+
     Flux<ServerSentEvent<Object>> eventoFin =
         Flux.just(ServerSentEvent.builder().event("fin").<Object>data("").build());
 
-    return Flux.concat(eventoCitas, eventoReformulacion, eventosTexto, eventoFin);
+    return Flux.concat(eventoCitas, eventoReformulacion, eventosTexto, eventoQueryLogId, eventoFin);
   }
 
   /**
@@ -124,6 +142,24 @@ class ChatController {
         .estadoDeStream(conversacionId)
         .map(ResponseEntity::ok)
         .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
+  /**
+   * @param comentario límite de 2000 caracteres — asunción de producto documentada en {@code
+   *     Consultar.registrarFeedback}, no pedida por el issue #3
+   */
+  record FeedbackWeb(
+      @NotNull Long queryLogId, @NotNull Boolean util, @Size(max = 2000) String comentario) {}
+
+  /**
+   * Público, sin token — ver {@code ApiTokenFilter}: la página de chat no maneja el token, así que
+   * si esta ruta lo exigiera el botón nunca podría llamarla.
+   */
+  @PostMapping("/api/feedback")
+  ResponseEntity<Void> feedback(@Valid @RequestBody FeedbackWeb feedback) {
+    boolean registrado =
+        consultar.registrarFeedback(feedback.queryLogId(), feedback.util(), feedback.comentario());
+    return registrado ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
   }
 
   private static ProyectoId proyectoDe(String projectId) {

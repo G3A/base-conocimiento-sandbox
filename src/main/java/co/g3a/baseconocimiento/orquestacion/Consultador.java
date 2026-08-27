@@ -23,10 +23,12 @@ class Consultador implements Consultar {
 
   private final Orquestador orquestador;
   private final Buscador buscador;
+  private final QueryFeedbackRepositorio feedbackRepo;
 
-  Consultador(Orquestador orquestador, Buscador buscador) {
+  Consultador(Orquestador orquestador, Buscador buscador, QueryFeedbackRepositorio feedbackRepo) {
     this.orquestador = orquestador;
     this.buscador = buscador;
+    this.feedbackRepo = feedbackRepo;
   }
 
   @Override
@@ -52,7 +54,17 @@ class Consultador implements Consultar {
                     e.projectId(),
                     e.texto(),
                     e.citas(),
-                    e.reformulacion()));
+                    e.reformulacion(),
+                    e.queryLogId()));
+  }
+
+  @Override
+  public boolean registrarFeedback(long queryLogId, boolean util, String comentario) {
+    if (!feedbackRepo.existe(queryLogId)) {
+      return false;
+    }
+    feedbackRepo.registrar(queryLogId, util, comentario);
+    return true;
   }
 
   @Override

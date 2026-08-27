@@ -14,9 +14,11 @@ import co.g3a.baseconocimiento.llm.VerificadorGrounding;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
 /**
@@ -206,6 +208,12 @@ class Orquestador {
     }
 
     StringBuilder acumulado = new StringBuilder();
+    // Se llena dentro del doOnComplete de abajo, cuando queryLog.registrar(...)
+    // ya devolvio el id -- para TODO camino que complete, incluido "servidor
+    // ocupado"/"sin informacion" (esos tambien escriben una fila real en
+    // query_log). Queda en null si el Flux termina en error o se cancela: ahi
+    // nunca se llega a escribir en query_log, no hay id que dar.
+    AtomicReference<Long> queryLogIdHolder = new AtomicReference<>();
     Flux<String> textoBase =
         pre.respuestaFija() != null
             ? Flux.just(pre.respuestaFija())
@@ -216,15 +224,17 @@ class Orquestador {
             .doOnComplete(
                 () -> {
                   long latenciaMs = (System.nanoTime() - pre.inicioNanos()) / 1_000_000;
-                  queryLog.registrar(
-                      pregunta.texto(),
-                      proyecto.valor(),
-                      pre.plan(),
-                      pre.ejecuciones(),
-                      pre.fragmentos(),
-                      acumulado.toString(),
-                      pre.citas(),
-                      latenciaMs);
+                  long queryLogId =
+                      queryLog.registrar(
+                          pregunta.texto(),
+                          proyecto.valor(),
+                          pre.plan(),
+                          pre.ejecuciones(),
+                          pre.fragmentos(),
+                          acumulado.toString(),
+                          pre.citas(),
+                          latenciaMs);
+                  queryLogIdHolder.set(queryLogId);
                 })
             // El cupo cubre TODA la consulta, no solo prepararHastaContexto: la
             // sintesis tambien le pide tokens a Ollama. Se libera aca, cuando el
@@ -239,11 +249,18 @@ class Orquestador {
                   }
                   if (conversacionId != null) {
                     String estadoFinal = signal == SignalType.ON_COMPLETE ? "completo" : "error";
-                    streamsEnCurso.finalizar(conversacionId, estadoFinal, acumulado.toString());
+                    streamsEnCurso.finalizar(
+                        conversacionId, estadoFinal, acumulado.toString(), queryLogIdHolder.get());
                   }
                 });
 
-    return new Consultar.RespuestaEnStreaming(pre.citas(), texto, pre.consultaReformulada());
+    // Mono.fromSupplier, no un valor ya calculado: se lee recien cuando alguien
+    // lo suscribe (ChatController lo hace despues de agotar `texto` dentro del
+    // mismo Flux.concat), momento en el que el doOnComplete de arriba ya corrio
+    // y el holder tiene el id real.
+    Mono<Long> queryLogId = Mono.fromSupplier(queryLogIdHolder::get);
+    return new Consultar.RespuestaEnStreaming(
+        pre.citas(), texto, pre.consultaReformulada(), queryLogId);
   }
 
   /**
