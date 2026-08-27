@@ -81,6 +81,18 @@ request; JDK 25 vía `actions/setup-java`, mismo que `pom.xml`. Localmente, `mak
 Lefthook: pre-commit verifica estilo y escanea secretos en lo staged, pre-push corre
 `make check`. Escape hatch: `LEFTHOOK=0 git commit …`.
 
+**Las recetas del `Makefile` que llaman a Maven usan `sh ./mvnw`, no `./mvnw` a secas** — en esta
+máquina, `make` (el `ezwinports.make` de Windows) no resuelve `./mvnw` directo; `sh ./mvnw` fuerza
+el paso por el intérprete correcto. Sin esto, `make check`/`make ci` fallan incluso con el resto
+del repo en verde — bloqueó un push real durante la instrumentación de este mismo repo.
+
+## Gobernanza
+
+Un [Ruleset de GitHub](https://github.com/G3A/base-conocimiento-sandbox/rules) sobre `dev` exige
+el workflow `CI` en verde y al menos 1 aprobación antes de habilitar el merge — el gate local
+(hooks, `make check`) es una convención; el Ruleset es lo que la vuelve obligatoria de verdad,
+incluso para quien la ignore o la salte con `LEFTHOOK=0`.
+
 ## Seguridad
 
 - No commitees `.env` ni archivos con credenciales. Agrega variables nuevas a `.env.example`.
