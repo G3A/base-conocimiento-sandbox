@@ -97,7 +97,11 @@ class StreamsEnCursoRepositorio {
         .param("conversacionId", conversacionId)
         .query(
             (rs, n) -> {
+              // wasNull() refleja la ULTIMA columna leida -- por eso se lee query_log_id
+              // primero y se resuelve su nulidad antes de leer cualquier otra columna,
+              // no despues.
               long queryLogId = rs.getLong("query_log_id");
+              Long queryLogIdONull = rs.wasNull() ? null : queryLogId;
               return new Estado(
                   rs.getString("estado"),
                   rs.getString("pregunta"),
@@ -105,7 +109,7 @@ class StreamsEnCursoRepositorio {
                   rs.getString("texto"),
                   Json.leerCitas(rs.getString("citas")),
                   rs.getString("reformulacion"),
-                  rs.wasNull() ? null : queryLogId);
+                  queryLogIdONull);
             })
         .optional();
   }

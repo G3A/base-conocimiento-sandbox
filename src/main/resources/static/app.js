@@ -693,17 +693,22 @@
     const enviar = async (util) => {
       turno.botonFeedbackSi.disabled = true;
       turno.botonFeedbackNo.disabled = true;
+      let registrado = false;
       try {
-        await fetch("/api/feedback", {
+        // fetch() solo rechaza por fallo de red -- un 400 (queryLogId invalido,
+        // payload rechazado) resuelve normal, por eso hay que chequear .ok
+        // antes de dar el feedback por guardado.
+        const respuesta = await fetch("/api/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ queryLogId: turno.queryLogId, util: util }),
         });
+        registrado = respuesta.ok;
       } catch (error) {
         // Sin conexion: los botones quedan deshabilitados igual -- reintentar
         // en una respuesta que ya se fue no aporta nada.
       }
-      if (turno.feedbackGracias) {
+      if (registrado && turno.feedbackGracias) {
         turno.feedbackGracias.classList.remove("oculto");
       }
     };
