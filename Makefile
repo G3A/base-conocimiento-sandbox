@@ -218,27 +218,27 @@ ingest-azdo:  ## Ingiere work items y wiki de Azure DevOps (F6, no-op si KB_AZDO
 ## ---------------------------------------------------------------- desarrollo
 
 build:  ## Compila el jar sin correr pruebas
-	./mvnw -B clean package -DskipTests
+	sh ./mvnw -B clean package -DskipTests
 
 test:  ## Corre las pruebas, incluidos los gates de arquitectura
-	./mvnw -B test
+	sh ./mvnw -B test
 
 verify:  ## Build completo con todos los gates
-	./mvnw -B clean verify
+	sh ./mvnw -B clean verify
 
 psql:  ## Abre una sesion psql contra la base
 	$(COMPOSE_ACTIVO) exec db psql -U $${POSTGRES_USER:-kb} -d $${POSTGRES_DB:-baseconocimiento}
 
 clean:  ## Borra artefactos de compilacion (NO toca los modelos ni la base)
-	./mvnw -B clean
+	sh ./mvnw -B clean
 
 ## ---------------------------------------------------------------- quality gates
 
 format:  ## Apply code formatting (Spotless)
-	./mvnw -q spotless:apply
+	sh ./mvnw -q spotless:apply
 
 lint:  ## Verify code style and static rules (gate: Spotless + Checkstyle)
-	./mvnw -q spotless:check checkstyle:check
+	sh ./mvnw -q spotless:check checkstyle:check
 
 secrets:  ## Scan the working tree for committed secrets
 	gitleaks detect --no-banner --redact
