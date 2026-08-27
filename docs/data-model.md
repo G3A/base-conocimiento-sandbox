@@ -64,7 +64,8 @@ son tablas de soporte independientes (ver detalle abajo).
 | Tabla | Propósito |
 |---|---|
 | `query_log` | Auditoría permanente de cada consulta: pregunta, plan, herramientas ejecutadas, candidatos, respuesta, citas, latencia |
-| `streams_en_curso` | Estado de la última pregunta en curso por conversación (upsert, no bitácora) — permite retomar una respuesta en streaming tras un F5, ver comentario de `V4__streams_en_curso.sql` |
+| `query_feedback` | La otra mitad de esa auditoría: si la respuesta sirvió o no, con comentario opcional. Append-only, varias filas por `query_log_id` — sin login de persona en el MVP no hay identidad real contra la cual deduplicar, ver `V5__query_feedback.sql` |
+| `streams_en_curso` | Estado de la última pregunta en curso por conversación (upsert, no bitácora) — permite retomar una respuesta en streaming tras un F5, ver comentario de `V4__streams_en_curso.sql`. Desde `V6`, guarda también `query_log_id` para que los botones de feedback sobrevivan a una reconexión |
 
 ## Índices relevantes
 
@@ -73,6 +74,8 @@ son tablas de soporte independientes (ver detalle abajo).
 - `chunks_source_project_idx`, `documents_source_project_idx` — filtrado por
   `(source_id, project_id)` antes de que el planner corra
 - `ingest_jobs_pendientes_idx` — índice parcial, solo `status = 'pending'`
+- `query_feedback_query_log_id_idx` — para `GET /api/admin/feedback` y para saber si una respuesta
+  ya tiene feedback
 
 ## Seguridad a nivel de fila / control de acceso
 
