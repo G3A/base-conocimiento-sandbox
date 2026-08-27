@@ -32,7 +32,15 @@
     <arconia.version>0.29.0</arconia.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <archunit.version>1.4.2</archunit.version>
-    <jqwik.version>1.10.1</jqwik.version>
+    <!-- Fijado en 1.9.3 a proposito, NO en la ultima: 1.10.0 traia una inyeccion de
+         prompt oculta (ANSI) contra agentes de IA que le pedia borrar los tests de
+         jqwik; 1.10.1 la reemplazo por una version visible que sigue imprimiendo
+         "Disregard previous instructions..." en cada corrida (ver
+         https://lwn.net/Articles/1075317/). jqwik.hideAntiAiClause solo oculta el
+         mensaje en una terminal interactiva (escape ANSI), no lo saca de stdout ni
+         de los logs de CI, asi que no resuelve nada por si solo. No subir de 1.9.x
+         sin revisar antes las release notes de esa version en concreto. -->
+    <jqwik.version>1.9.3</jqwik.version>
     <wiremock.version>3.13.2</wiremock.version>
     <!-- Boot 4.1 ya no importa el BOM de Testcontainers: hay que declararlo -->
     <testcontainers.version>2.0.5</testcontainers.version>
