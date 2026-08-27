@@ -57,6 +57,10 @@ por defecto de la máquina sea otro.
 - **Spring AI solo como cliente**: no se usa `VectorStore` ni las abstracciones de RAG —
   el retrieval de 4 señales va escrito a mano en SQL sobre `JdbcClient`.
 - **`.env` nunca se commitea**; `.env.example` es la lista canónica de variables.
+- **`jqwik.version` está fijado en 1.9.3 a propósito, no en la última**: 1.10.x imprime una
+  inyección de prompt contra agentes de IA en cada corrida de tests (ver el comentario en
+  `pom.xml` y https://lwn.net/Articles/1075317/). No lo subas sin revisar antes esa release en
+  concreto.
 
 ## Pruebas
 
@@ -92,6 +96,13 @@ Un [Ruleset de GitHub](https://github.com/G3A/base-conocimiento-sandbox/rules) s
 el workflow `CI` en verde y al menos 1 aprobación antes de habilitar el merge — el gate local
 (hooks, `make check`) es una convención; el Ruleset es lo que la vuelve obligatoria de verdad,
 incluso para quien la ignore o la salte con `LEFTHOOK=0`.
+
+**Repo de una sola persona**: nadie puede aprobar su propia PR, así que sin un bypass actor
+configurado el Ruleset bloquea todo merge para siempre (`current_user_can_bypass: "never"` por
+defecto). El Ruleset ya tiene `RepositoryRole` id `5` (admin) como bypass — mergea con `gh pr merge
+--admin` en vez de esperar una aprobación que nunca puede llegar. El squash resultante usa el
+mensaje por defecto (título + lista de commits), no el cuerpo de la PR — si el `Closes #N` vivía
+solo ahí, el issue no se cierra solo; ciérralo a mano.
 
 ## Seguridad
 
