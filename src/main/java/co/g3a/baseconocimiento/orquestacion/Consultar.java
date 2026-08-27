@@ -8,6 +8,7 @@ import co.g3a.baseconocimiento.compartido.Dominio.Respuesta;
 import java.util.List;
 import java.util.Optional;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * La fachada del nucleo: la unica puerta que los adaptadores pueden cruzar.
@@ -36,8 +37,12 @@ public interface Consultar {
    * @param consultaReformulada ver {@code Dominio.Respuesta.consultaReformulada} — disponible en el
    *     mismo momento que las citas, porque la reformulación ocurre antes de ejecutar las
    *     herramientas
+   * @param queryLogId se resuelve recién cuando {@code texto} completa (ahí es cuando la etapa 7
+   *     escribe la fila y se conoce el id) — nunca emite si el stream termina en error o se cancela
+   *     antes, porque en ese caso nunca se llega a escribir en {@code query_log}
    */
-  record RespuestaEnStreaming(List<Cita> citas, Flux<String> texto, String consultaReformulada) {}
+  record RespuestaEnStreaming(
+      List<Cita> citas, Flux<String> texto, String consultaReformulada, Mono<Long> queryLogId) {}
 
   /**
    * @param conversacionId identifica la conversación para poder reconectarse con {@link
@@ -51,6 +56,11 @@ public interface Consultar {
    * Estado de la pregunta más reciente de una conversación — para que la UI se reconecte después de
    * un F5 a mitad de una respuesta en vez de perderla por completo. {@code estado}: {@code
    * "en_curso"}, {@code "completo"} o {@code "error"}.
+   *
+   * @param queryLogId {@code null} mientras {@code estado} es {@code "en_curso"}, o si terminó en
+   *     {@code "error"} (nunca se llegó a escribir en {@code query_log}) — presente en {@code
+   *     "completo"}, para que la UI reconectada pueda ofrecer los mismos botones de feedback que
+   *     tendría si nunca hubiera perdido la conexión
    */
   record EstadoStream(
       String estado,
@@ -58,9 +68,28 @@ public interface Consultar {
       String projectId,
       String texto,
       List<Cita> citas,
-      String reformulacion) {}
+      String reformulacion,
+      Long queryLogId) {}
 
   Optional<EstadoStream> estadoDeStream(long conversacionId);
+
+  /**
+   * Registra que una respuesta ya mostrada sirvió o no, con un comentario opcional. {@code false}
+   * si {@code queryLogId} no corresponde a ninguna fila real de {@code query_log} — el adaptador lo
+   * traduce a un error de cliente, sin necesitar excepciones.
+   *
+   * <p>Se permiten varias filas por {@code queryLogId} (no hay login de persona en el MVP, así que
+   * no hay identidad real contra la cual deduplicar); el adaptador es quien decide, del lado del
+   * cliente, no admitir más de un click.
+   *
+   * <p>Riesgo aceptado y documentado, no resuelto acá: nada valida que quien manda el feedback
+   * realmente haya visto la respuesta de ese {@code queryLogId} — ver el issue #3 y el plan de
+   * implementación. Resolverlo de verdad requiere una noción de sesión/identidad que este MVP no
+   * tiene; construirla es una iniciativa aparte.
+   *
+   * @param comentario límite de 2000 caracteres — asunción de producto, no pedida por el issue
+   */
+  boolean registrarFeedback(long queryLogId, boolean util, String comentario);
 
   /**
    * Vista previa casi instantánea: solo la señal de texto completo, sin embeddings ni cross-encoder

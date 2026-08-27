@@ -46,6 +46,8 @@ class OrquestacionRepositoriosTest {
 
   @Autowired QueryLogRepositorio queryLogRepo;
 
+  @Autowired QueryFeedbackRepositorio queryFeedbackRepo;
+
   @Test
   @DisplayName("recent_commits: solo trae chunks de una fuente local_git, mas recientes primero")
   void masRecientesPorFuente() {
@@ -151,6 +153,46 @@ class OrquestacionRepositoriosTest {
             .query(String.class)
             .single();
     assertThat(pregunta).isEqualTo("¿como se despliega?");
+  }
+
+  @Test
+  @DisplayName(
+      "query_feedback: registra una fila por queryLogId, existe() distingue presente/ausente")
+  void registraFeedbackYVerificaExistencia() {
+    long queryLogId = registrarQueryLogDePrueba();
+
+    assertThat(queryFeedbackRepo.existe(queryLogId)).isTrue();
+    assertThat(queryFeedbackRepo.existe(queryLogId + 999_999L)).isFalse();
+
+    long feedbackId = queryFeedbackRepo.registrar(queryLogId, false, "la cita no aplicaba");
+    assertThat(feedbackId).isPositive();
+
+    String comentario =
+        jdbc.sql("SELECT comentario FROM query_feedback WHERE id = :id")
+            .param("id", feedbackId)
+            .query(String.class)
+            .single();
+    assertThat(comentario).isEqualTo("la cita no aplicaba");
+  }
+
+  @Test
+  @DisplayName("query_feedback: listarRecientes respeta el limite y ordena por creado_en DESC")
+  void listarRecientesRespetaElLimite() {
+    long queryLogId = registrarQueryLogDePrueba();
+    queryFeedbackRepo.registrar(queryLogId, true, null);
+    queryFeedbackRepo.registrar(queryLogId, false, "segundo");
+
+    List<QueryFeedbackRepositorio.FeedbackRegistrado> recientes =
+        queryFeedbackRepo.listarRecientes(1);
+
+    assertThat(recientes).hasSize(1);
+    assertThat(recientes.get(0).comentario()).isEqualTo("segundo");
+  }
+
+  private long registrarQueryLogDePrueba() {
+    var plan = new PlanDeHerramientas(List.of("search_unified"), "porque si");
+    return queryLogRepo.registrar(
+        "¿como se despliega?", "default", plan, List.of(), List.of(), "Respuesta.", List.of(), 10L);
   }
 
   private long crearFuente(String kind, String nombre) {

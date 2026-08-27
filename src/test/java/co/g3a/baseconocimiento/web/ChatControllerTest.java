@@ -1,9 +1,14 @@
 package co.g3a.baseconocimiento.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,6 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * {@link ChatController} contra un slice de MVC: {@link Consultar} queda doblado, así que no hace
@@ -68,7 +74,8 @@ class ChatControllerTest {
     Cita cita = new Cita("file:///doc1", "Doc 1", "extracto", "doc_section");
     when(consultar.responderEnStreaming(any(), any(), any(), any()))
         .thenReturn(
-            new Consultar.RespuestaEnStreaming(List.of(cita), Flux.just("Hola ", "mundo"), null));
+            new Consultar.RespuestaEnStreaming(
+                List.of(cita), Flux.just("Hola ", "mundo"), null, Mono.just(42L)));
 
     MvcResult resultadoAsincronico =
         mockMvc
@@ -89,6 +96,58 @@ class ChatControllerTest {
   }
 
   @Test
+  @DisplayName("GET /api/chat manda el evento queryLogId, despues de los tokens y antes de fin")
+  void chatMandaElEventoQueryLogIdDespuesDeLosTokens() throws Exception {
+    Cita cita = new Cita("file:///doc1", "Doc 1", "extracto", "doc_section");
+    when(consultar.responderEnStreaming(any(), any(), any(), any()))
+        .thenReturn(
+            new Consultar.RespuestaEnStreaming(
+                List.of(cita), Flux.just("Hola"), null, Mono.just(7L)));
+
+    MvcResult resultadoAsincronico =
+        mockMvc
+            .perform(get("/api/chat").param("q", "como se despliega"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    String cuerpo =
+        mockMvc
+            .perform(asyncDispatch(resultadoAsincronico))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(cuerpo.indexOf("event:token")).isLessThan(cuerpo.indexOf("event:queryLogId"));
+    assertThat(cuerpo.indexOf("event:queryLogId")).isLessThan(cuerpo.indexOf("event:fin"));
+    assertThat(cuerpo).contains("data:7");
+  }
+
+  @Test
+  @DisplayName(
+      "GET /api/chat no manda el evento queryLogId si el Mono nunca emite "
+          + "(stream terminado en error/cancelado antes de completar)")
+  void chatNoMandaQueryLogIdSiElMonoNuncaEmite() throws Exception {
+    Cita cita = new Cita("file:///doc1", "Doc 1", "extracto", "doc_section");
+    when(consultar.responderEnStreaming(any(), any(), any(), any()))
+        .thenReturn(
+            new Consultar.RespuestaEnStreaming(
+                List.of(cita), Flux.just("Hola"), null, Mono.empty()));
+
+    MvcResult resultadoAsincronico =
+        mockMvc
+            .perform(get("/api/chat").param("q", "como se despliega"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+
+    mockMvc
+        .perform(asyncDispatch(resultadoAsincronico))
+        .andExpect(status().isOk())
+        .andExpect(content().string(not(containsString("event:queryLogId"))))
+        .andExpect(content().string(containsString("event:fin")));
+  }
+
+  @Test
   @DisplayName(
       "GET /api/chat manda el evento reformulacion, antes de los tokens, "
           + "solo cuando el Reformulador cambio la consulta")
@@ -97,7 +156,7 @@ class ChatControllerTest {
     when(consultar.responderEnStreaming(any(), any(), any(), any()))
         .thenReturn(
             new Consultar.RespuestaEnStreaming(
-                List.of(cita), Flux.just("Respuesta."), "boxing conversion"));
+                List.of(cita), Flux.just("Respuesta."), "boxing conversion", Mono.just(1L)));
 
     MvcResult resultadoAsincronico =
         mockMvc
@@ -130,7 +189,8 @@ class ChatControllerTest {
     Cita cita = new Cita("file:///doc1", "Doc 1", "extracto", "doc_section");
     when(consultar.responderEnStreaming(any(), any(), any(), any()))
         .thenReturn(
-            new Consultar.RespuestaEnStreaming(List.of(cita), Flux.just("Hola", " mundo"), null));
+            new Consultar.RespuestaEnStreaming(
+                List.of(cita), Flux.just("Hola", " mundo"), null, Mono.just(2L)));
 
     MvcResult resultadoAsincronico =
         mockMvc
@@ -151,14 +211,15 @@ class ChatControllerTest {
     Cita cita = new Cita("file:///doc1", "Doc 1", "extracto", "doc_section");
     Consultar.EstadoStream estado =
         new Consultar.EstadoStream(
-            "completo", "que es un enum", "default", "Un enum es...", List.of(cita), null);
+            "completo", "que es un enum", "default", "Un enum es...", List.of(cita), null, 9L);
     when(consultar.estadoDeStream(7L)).thenReturn(Optional.of(estado));
 
     mockMvc
         .perform(get("/api/chat/estado").param("conversacionId", "7"))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("\"estado\":\"completo\"")))
-        .andExpect(content().string(containsString("Un enum es...")));
+        .andExpect(content().string(containsString("Un enum es...")))
+        .andExpect(content().string(containsString("\"queryLogId\":9")));
   }
 
   @Test
@@ -169,5 +230,46 @@ class ChatControllerTest {
     mockMvc
         .perform(get("/api/chat/estado").param("conversacionId", "7"))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("POST /api/feedback delega en Consultar.registrarFeedback y devuelve 200")
+  void feedbackDelegaEnConsultar() throws Exception {
+    when(consultar.registrarFeedback(anyLong(), anyBoolean(), anyString())).thenReturn(true);
+
+    mockMvc
+        .perform(
+            post("/api/feedback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"queryLogId\":9,\"util\":false,\"comentario\":\"la cita no aplicaba\"}"))
+        .andExpect(status().isOk());
+
+    verify(consultar).registrarFeedback(9L, false, "la cita no aplicaba");
+  }
+
+  @Test
+  @DisplayName(
+      "POST /api/feedback devuelve 400 cuando Consultar.registrarFeedback dice que no existe")
+  void feedbackDevuelve400CuandoElQueryLogIdNoExiste() throws Exception {
+    when(consultar.registrarFeedback(anyLong(), anyBoolean(), anyString())).thenReturn(false);
+
+    mockMvc
+        .perform(
+            post("/api/feedback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"queryLogId\":999999,\"util\":true}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("POST /api/feedback rechaza un payload sin queryLogId o sin util")
+  void feedbackRechazaPayloadInvalido() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/feedback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"util\":true}"))
+        .andExpect(status().isBadRequest());
   }
 }
