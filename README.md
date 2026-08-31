@@ -7,6 +7,21 @@ work items, con **citas verificables**. Reproduce la arquitectura que Cerebras d
 - En vez de Slack, **dos adaptadores**: una UI HTML/JS y un bot de Teams.
 - **Costo cero**: modelos abiertos en contenedores locales. Sin APIs de pago, sin nube.
 
+> ### ⚠️ `main` no se mergea desde `dev`
+>
+> Este repositorio es el **sandbox del workshop**, y su `main` es un artefacto didáctico: apunta al
+> commit *«Snapshot inicial: base-conocimiento antes de instrumentar con IA»* y no se actualiza.
+> Es el «antes» del contraste que enseñan los manuales, y está **fotografiado** — la captura
+> `01-repo-sandbox-creado.png` del manual de instalación lleva el pie *«rama main, snapshot inicial
+> pre-instrumentación»*.
+>
+> Que lleve una docena de commits sin integrar parece descuido y es diseño. `main` no tiene
+> protección de rama, así que el merge saldría sin ninguna fricción: **el trabajo termina en `dev`**.
+>
+> Lo mismo vale para el `main` del monorepo hermano
+> [`workshop-desarrollo-sw-guiado-por-ia`](https://github.com/G3A/workshop-desarrollo-sw-guiado-por-ia),
+> donde además hay ramas `validacion/*` que tampoco se borran.
+
 ## Qué lo hace distinto de un RAG genérico
 
 | Decisión | Por qué |
