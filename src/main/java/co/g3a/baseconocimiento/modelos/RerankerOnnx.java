@@ -146,12 +146,22 @@ class RerankerOnnx implements Reranker, AutoCloseable {
   }
 
   @Override
-  public void close() throws OrtException {
-    if (sesion != null) {
-      sesion.close();
-    }
-    if (tokenizador != null) {
-      tokenizador.close();
+  public void close() {
+    // No declara "throws Exception": AutoCloseable.close() puede sobreescribirse con una
+    // firma mas angosta, y -Xlint:try marca "Exception" crudo como riesgo de tragarse un
+    // InterruptedException. tokenizador.close() (DJL) declara Exception generico; se
+    // relanza envuelto en vez de propagar el checked exception crudo.
+    try {
+      if (sesion != null) {
+        sesion.close();
+      }
+      if (tokenizador != null) {
+        tokenizador.close();
+      }
+    } catch (OrtException e) {
+      throw new IllegalStateException("No se pudo cerrar la sesion ONNX del reranker", e);
+    } catch (Exception e) {
+      throw new IllegalStateException("No se pudo cerrar el tokenizador del reranker", e);
     }
   }
 }

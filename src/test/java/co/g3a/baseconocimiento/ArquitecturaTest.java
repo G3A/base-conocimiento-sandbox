@@ -33,15 +33,15 @@ class ArquitecturaTest {
   @Test
   @DisplayName("Los adaptadores son piel: no conocen el retrieval, solo la fachada")
   void losAdaptadoresNoConocenElNucleo() {
-    // Este es EL contrato del proyecto. La UI web y el bot de Teams deben poder
-    // reemplazarse sin tocar una linea de recuperacion, y para eso no pueden
-    // saber que existen cuatro senales, un RRF, un cross-encoder ni un LLM.
+    // Este es EL contrato del proyecto. La UI web, el bot de Teams y el filtro de
+    // seguridad deben poder reemplazarse sin tocar una linea de recuperacion, y para
+    // eso no pueden saber que existen cuatro senales, un RRF, un cross-encoder ni un LLM.
     //
-    // allowEmptyShould en false: `web` y `teams` ya existen (F4/F5 completadas), asi
-    // que la regla debe morder de verdad, no solo nacer verde por vacia.
+    // allowEmptyShould en false: los tres paquetes ya existen, asi que la regla debe
+    // morder de verdad, no nacer verde por vacia.
     noClasses()
         .that()
-        .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..")
+        .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..", RAIZ + ".seguridad..")
         .should()
         .dependOnClassesThat()
         .resideInAnyPackage(
@@ -67,26 +67,26 @@ class ArquitecturaTest {
             RAIZ + ".llm..")
         .should()
         .dependOnClassesThat()
-        .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..")
+        .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..", RAIZ + ".seguridad..")
         .because("el nucleo no sabe por que puerta entro la pregunta")
         .allowEmptyShould(false)
         .check(clases);
   }
 
   @Test
-  @DisplayName("Seguridad es nucleo: los adaptadores no lo esquivan y el no depende de ellos")
-  void seguridadEsNucleo() {
-    // `seguridad` es el noveno modulo del sistema (subpaquete directo de la raiz) pero
-    // no tenia package-info.java propio ni aparecia en ninguna regla: no estaba
-    // protegido de los adaptadores ni impedido de depender de ellos. Mismo trato que
-    // el resto del nucleo, en ambas direcciones.
+  @DisplayName("Seguridad no se mezcla con los otros adaptadores")
+  void seguridadNoSeMezclaConLosOtrosAdaptadores() {
+    // `seguridad` es el noveno modulo del sistema y durante un tiempo no aparecio en
+    // ninguna regla. Las dos de arriba ya lo cubren frente al nucleo; falta la
+    // frontera lateral: el filtro de token no sabe si la peticion venia de la UI web
+    // o del bot, y ni la UI ni el bot lo instancian a mano para saltearselo.
     noClasses()
         .that()
         .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..")
         .should()
         .dependOnClassesThat()
         .resideInAnyPackage(RAIZ + ".seguridad..")
-        .because("seguridad es una pieza del nucleo, no una utilidad de los adaptadores")
+        .because("seguridad se configura sola por filtro, no se llama desde un adaptador")
         .allowEmptyShould(false)
         .check(clases);
 
@@ -96,8 +96,7 @@ class ArquitecturaTest {
         .should()
         .dependOnClassesThat()
         .resideInAnyPackage(RAIZ + ".web..", RAIZ + ".teams..")
-        .because(
-            "seguridad no sabe por que puerta entro la peticion, igual que el resto del nucleo")
+        .because("seguridad no sabe por que puerta entro la peticion")
         .allowEmptyShould(false)
         .check(clases);
   }
@@ -117,7 +116,8 @@ class ArquitecturaTest {
             RAIZ + ".modelos..",
             RAIZ + ".llm..",
             RAIZ + ".web..",
-            RAIZ + ".teams..")
+            RAIZ + ".teams..",
+            RAIZ + ".seguridad..")
         .because("es solo vocabulario: si depende de algo, deja de ser compartido")
         .allowEmptyShould(true)
         .check(clases);

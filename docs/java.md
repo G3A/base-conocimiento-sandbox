@@ -1,188 +1,153 @@
 # Java — Base de Conocimiento
 
-Contexto profundo de Java para agentes de IA. Para el pipeline funcional completo ver
-[`architecture.md`](architecture.md); para el porqué de una decisión puntual,
-[`adrs/`](adrs).
+Profundidad técnica del stack Java/Spring. Para el panorama general ver
+[architecture.md](architecture.md); este doc no repite esa tabla de módulos, solo la referencia.
 
-## Postura del framework
+## Módulos (single-module Maven + Spring Modulith)
 
-Spring Boot 4.1 (`spring-boot-starter-parent:4.1.0`), con Spring Modulith 2.1 encima para
-las fronteras entre módulos. Servidor embebido (Tomcat vía `spring-boot-starter-web`), sin
-app server externo. Módulo Maven único — no hay `<modules>` ni multi-módulo.
+Un solo `pom.xml`, sin `<modules>` — el "grafo de módulos" real vive a nivel de paquete, verificado
+por Spring Modulith (`@ApplicationModule` en cada `package-info.java` + `ApplicationModules.of(...)
+.verify()` en `ArquitecturaTest`). Ver la tabla completa en [architecture.md](architecture.md#módulos-spring-modulith).
 
-## JDK objetivo
+Cada módulo declara su intención en el Javadoc de su `package-info.java` — vale la pena leerlos
+antes de tocar un módulo:
 
-`pom.xml:24` fija `<java.version>25</java.version>`, alineado con el `Dockerfile`, que
-compila y corre las 3 etapas (`deps`, `build`, `runtime`) sobre
-`eclipse-temurin:25-jdk-noble` / `-jre-noble`. Corregido: hasta esta revisión `pom.xml`
-había quedado en 21 mientras el Dockerfile ya corría en 25.
+- `orquestacion`: expone `Consultar`, la única puerta que los adaptadores pueden cruzar; todo lo
+  demás es `internal`.
+- `recuperacion`: SQL a mano sobre `JdbcClient`, deliberadamente no sobre el `VectorStore` de
+  Spring AI — esa abstracción no expresa cuatro señales fusionadas por RRF.
+- `llm`: Spring AI se usa solo aquí (chat/streaming/salida estructurada); sus abstracciones de RAG
+  quedan fuera a propósito, mismo motivo que `recuperacion`.
+- `teams`: protocolo Bot Connector implementado directo, sin SDK — el SDK Java murió en noviembre
+  de 2023 y el resto del Bot Framework SDK se archivó en enero de 2026.
+- `compartido`: no depende de nadie, sin lógica — solo vocabulario (`Cita`, `Fragmento`,
+  `Proyecto`, `Respuesta`).
+- `seguridad`: filtro de token Bearer sobre el API programático. Adaptador piel, como `web` y
+  `teams` — no depende del núcleo y el núcleo no depende de él.
 
-## Gestión de dependencias y BOMs
+## JDK target & nivel de lenguaje
 
-`dependencyManagement` importa 4 BOMs además del parent de Spring Boot:
-`spring-modulith-bom` 2.1.0, `spring-ai-bom` 2.0.0, `testcontainers-bom` 2.0.5,
-`arconia-bom` 0.29.0. Versiones fijadas en `<properties>`, sin rangos.
+- **JDK 21** (`<java.version>21</java.version>`), LTS — el comentario del `pom.xml` aclara que es
+  lo instalado en la máquina de desarrollo y que Spring Boot 4.1 soporta desde la línea base 17;
+  subir a 25 es cambiar esa propiedad más los tags del `Dockerfile`.
+- Sin mismatch detectado entre el JDK declarado y el usado en Docker (`Dockerfile` no inspeccionado
+  línea a línea en esta pasada — <!-- TODO: confirmar el tag base de eclipse-temurin del Dockerfile
+  coincide con 21 -->).
 
-**Regla para agentes**: una dependencia cubierta por uno de estos BOMs o por
-`dependencyManagement` **no debe llevar su propio `<version>`** en `<dependencies>` — es
-uno de los errores más comunes al agregar una dependencia nueva.
+## Dependencias y BOMs
 
-El wrapper `./mvnw` está commiteado — úsalo siempre en vez de un `mvn` de sistema.
+Padre `spring-boot-starter-parent:4.1.0`. Cuatro BOMs importados vía `<dependencyManagement>`, todo
+con versión pinneada por `<properties>`, sin rangos:
 
-Dependencias destacadas por área:
-
-| Área | Dependencias |
-|---|---|
-| Web | `spring-boot-starter-web`, `-validation`, `-actuator` |
-| Persistencia | `spring-boot-starter-jdbc` + `postgresql` + `pgvector` + Flyway (`spring-boot-flyway` + `flyway-core` + `flyway-database-postgresql`) |
-| Modulith | `spring-modulith-starter-core` |
-| IA | `spring-ai-starter-model-ollama` + `spring-ai-starter-model-openai` (dos proveedores a la vez, ver "Dónde termina Spring AI" en `architecture.md`) |
-| Reranking local | `onnxruntime` + `ai.djl.huggingface:tokenizers` |
-| Ingesta | `arconia-docling-spring-boot-starter`, `org.eclipse.jgit` |
-| Seguridad | `spring-security-oauth2-jose` (solo la librería, no el starter completo — a propósito, para que Security no bloquee toda la app) |
-| Test | `spring-boot-starter-test`, `spring-boot-webmvc-test`, `spring-modulith-starter-test`, `spring-boot-testcontainers` + `testcontainers-postgresql` + `testcontainers-junit-jupiter`, `archunit-junit5`, `jqwik`, `wiremock-standalone` |
-
-## DI / composition root
-
-Inyección por constructor es la convención (idiomática de Spring); no se detectó
-inyección por campo. `@ConfigurationPropertiesScan` en la clase principal
-(`BaseConocimientoApplication`) — no hace falta registrar cada `@ConfigurationProperties`
-a mano. La configuración está dispersa en `@Configuration` pequeños por módulo (ej.
-`SeguridadConfig`, `WebConfig`), no en una clase central única. `@EnableScheduling`
-habilita las 4 tareas `@Scheduled` del sistema (relevo de fuentes, worker de embeddings,
-recálculo de `term_stats`, etc.).
-
-## Fronteras de módulos (Spring Modulith)
-
-Paquete raíz `co.g3a.baseconocimiento`, anotado `@Modulithic(systemName =
-"base-conocimiento")`. Cada subpaquete directo es un módulo; 8 de los 9 declaran
-`@org.springframework.modulith.ApplicationModule` en su `package-info.java` para fijar
-un `displayName`. El noveno, `seguridad`, es módulo igual por convención (subpaquete
-directo del raíz) pero sin `package-info.java` propio.
-
-| Módulo | displayName | Responsabilidad |
+| BOM | Versión | Motivo |
 |---|---|---|
-| `compartido` | Compartido | Vocabulario de dominio compartido; no depende de nadie |
-| `ingesta` | Ingesta | Conectores, chunking, cola de trabajo, embebido |
-| `llm` | LLM | Cliente de generación (OpenAI contra `llama-server`/Bonsai, Ollama para el destilador) |
-| `modelos` | Modelos | Embeddings (Ollama) y cross-encoder ONNX |
-| `orquestacion` | Orquestacion | Pipeline de 7 etapas; expone la fachada `Consultar` |
-| `recuperacion` | Recuperacion | 4 señales, RRF, cross-encoder |
-| `web` | Web | Adaptador HTML/JS: REST, SSE, estáticos |
-| `teams` | Teams | Adaptador Bot Connector |
-| `seguridad` | *(sin `displayName`)* | Filtro de token Bearer del API programático |
+| `spring-modulith-bom` | 2.1.0 | Fronteras entre módulos |
+| `spring-ai-bom` | 2.0.0 | Cliente LLM (Ollama + OpenAI-compatible) |
+| `testcontainers-bom` | 2.0.5 | Boot 4.1 ya no lo importa solo — hay que declararlo a mano |
+| `arconia-bom` | 0.29.0 | Starter de Docling para ingesta de documentos |
 
-**La regla que hace cumplir `ArquitecturaTest`** (ArchUnit + `ApplicationModules.of(...)
-.verify()`, corre en cada `./mvnw test`): `web` y `teams` solo pueden llegar a
-`orquestacion.Consultar` (la única puerta) y a `compartido` — nunca directo a
-`recuperacion`, `ingesta`, `modelos` ni `llm`. A la inversa, el núcleo (`orquestacion` /
-`recuperacion` / `ingesta` / `modelos` / `llm`) no puede depender de `web` ni `teams`.
-Alcanzar el paquete interno de otro módulo sin pasar por su API pública es justo la
-violación que esta prueba detecta.
+**Regla de edición**: una dependencia gestionada por un BOM o `<dependencyManagement>` no debe
+llevar su propio `<version>` — es uno de los errores más comunes de un agente al tocar el `pom.xml`.
+
+Dependencias con versión propia fuera de BOM (todas en `<properties>`, sin rangos):
+`onnxruntime` 1.28.0, `djl-tokenizers` 0.36.0, `pgvector` 0.1.6, `jgit` 7.7.1, `archunit` 1.4.2,
+`jqwik` 1.10.1, `wiremock` 3.13.2.
+
+`./mvnw`/`mvnw.cmd` están commiteados — preferirlos sobre un `mvn` bare.
+
+## Framework: Spring Boot (servidor embebido)
+
+`@SpringBootApplication` (`BaseConocimientoApplication`), sin app-server externo, jar por capas.
+
+## DI / composición
+
+Constructor injection idiomático en `@Service`/`@Component`/`@Repository`. Confirmado con grep
+dirigido (`@Autowired`/`@Inject` → 0 resultados en `src/main`; los 14 usos de `@Value` son todos
+parámetro de constructor): no hay field injection en código de producción. Sin `@Profile`
+condicionales detectados en el árbol principal más allá de la configuración de perfiles de Docker
+Compose (no de Spring).
+
+## Fronteras de módulo (Spring Modulith)
+
+Ver la regla completa y sus tres adaptadores en [architecture.md](architecture.md#módulos-spring-modulith)
+y el archivo `ArquitecturaTest`. Las 4 reglas (3 `noClasses()` de ArchUnit + `ApplicationModules.verify()`)
+corren activadas de verdad, sin `allowEmptyShould`, y cubren a `web`, `teams` y `seguridad` por igual.
+`ApplicationModules.verify()` corre en el mismo ciclo de test que el resto (`make test`), no está
+deshabilitado.
 
 ## Persistencia
 
-`JdbcClient` de Spring, sin ORM — decisión deliberada, no un default (ver los
-comentarios en `pom.xml` y en el `package-info.java` de `recuperacion`): un
-`VectorStore`/JPA no puede expresar las 4 señales de retrieval fusionadas por RRF con SQL
-a mano. Migraciones con Flyway (`spring-boot-flyway` + `flyway-core` +
-`flyway-database-postgresql`), archivos en `src/main/resources/db/migration/`
-(`V1__esquema.sql` … `V4__streams_en_curso.sql`), aplicadas automáticamente al arrancar
-la app (`spring.flyway.enabled: true`). Detalle del esquema en
-[`data-model.md`](data-model.md).
+`JdbcClient` sobre PostgreSQL — SQL escrito a mano, no JPA/Hibernate ([ADR pendiente de
+formalizar](adrs/) esta decisión; ver `recuperacion/package-info.java` para el razonamiento:
+el `VectorStore` de Spring AI no sabe expresar cuatro señales fusionadas por RRF). Migraciones
+Flyway en `src/main/resources/db/migration/`, aplicadas al arrancar la app (autoconfig del módulo
+`spring-boot-flyway`). Ver [data-model.md](data-model.md) para el esquema completo.
 
 ## Configuración y perfiles
 
-Un solo `application.yml`, sin perfiles Spring por ambiente (no hay
-`application-{profile}.yml`) — la variación entre entornos es 100% por variables de
-entorno con default embebido en cada `${VAR:default}`. `.env.example` es la lista
-canónica; se copia a `.env` (nunca commiteado) y Docker Compose lo inyecta al contenedor
-`api`. No hay secrets manager: todo vía `.env` / variables de entorno del contenedor.
+`.env`/`.env.example` (31 variables) es la fuente de configuración, consumida por Docker Compose e
+inyectada como variables de entorno al contenedor `api` — no se detectaron `application-{perfil}.yml`
+múltiples ni `@ConfigurationProperties` explorados en esta pasada
+(<!-- TODO: listar las clases `@ConfigurationProperties` reales, ej. las que ya se ven en
+`SeguridadPropiedades`, `RecuperacionPropiedades`, `TeamsPropiedades`, `UmbralRelevanciaPropiedades` -->).
 
-## Build, ejecución, pruebas
+## Build, run, test
 
-El `Makefile` es la convención de la casa — prefiérelo sobre invocar Maven a mano:
+Ver los comandos en [AGENTS.md](../AGENTS.md#comandos). `maven-surefire-plugin` incluye
+`**/*Test.java`, `**/*Tests.java` y `**/*Properties.java` (este último son las propiedades de
+jqwik) — no hay Failsafe/split unit-integration explícito; las pruebas que necesitan Postgres real
+usan Testcontainers dentro del mismo `test` de Surefire. Frameworks: JUnit 5, AssertJ (vía
+`spring-boot-starter-test`), ArchUnit, jqwik (property-based), Testcontainers, WireMock (dobla el
+JWKS de Bot Framework).
 
-```bash
-make build   # ./mvnw -B clean package -DskipTests
-make test    # ./mvnw -B test           -- incluye los gates de arquitectura (ArquitecturaTest)
-make verify  # ./mvnw -B clean verify
-```
-
-No hay separación unit/integration (sin Failsafe, sin `*IT.java`): Surefire corre todo
-bajo `**/*Test.java`, `**/*Tests.java`, `**/*Properties.java` (este último para
-property-based tests con jqwik). `make test` levanta Testcontainers (Postgres real) — no
-hay un `make test-unit` más liviano.
-
-Frameworks: JUnit 5 + AssertJ (vía `spring-boot-starter-test`), Mockito, ArchUnit 1.4.2,
-jqwik 1.10.1 (property-based), Testcontainers 2.0.5 (Postgres real en pruebas),
-WireMock 3.13.2 (dobla Bot Framework / Graph / Azure DevOps).
-
-`./mvnw spring-boot:run` no es el camino habitual para correr la app completa: espera
-Postgres, Ollama y, según el perfil, `llama-server`/`docling-serve` — usa `make up` en su
-lugar. Ver [`infrastructure.md`](infrastructure.md).
-
-## Gates de calidad
+## Quality gates
 
 | Gate | Estado |
 |---|---|
-| ArchUnit (fronteras de módulos) | ✅ presente — `ArquitecturaTest`, corre en `./mvnw test` |
-| Spring Modulith `ApplicationModules.verify()` | ✅ presente — mismo test |
-| Checkstyle / Spotless | ❌ ausente |
-| SpotBugs / PMD | ❌ ausente |
-| SonarQube | ❌ ausente (sin `sonar-project.properties`) |
+| ArchUnit | **Presente** — 4 reglas, `ArquitecturaTest`, corre en `make test` |
+| Checkstyle | Ausente |
+| Spotless | Ausente |
+| SpotBugs / PMD | Ausente |
+| SonarQube | Ausente |
+| CI (`.github/workflows`) | Ausente |
 
-Solo ArchUnit — sin formatter ni linter estático configurado.
+Solo ArchUnit está en su lugar hoy — no asumas cobertura de formato/estilo. Cerrar esta tabla es
+justo lo que corre `/sdlc-ia:instrument-project-java` (validado en la etapa F2 de
+`validacion-workshop/`, en el repositorio del workshop).
 
-## Superficie web / API
+## Web / API
 
-REST puro (`@RestController`), sin GraphQL ni gRPC. 7 controladores: `IngestaController`,
-`AdminController`, `ContenidoVaultController` (módulo `ingesta`), `OrquestacionController`
-(`/api/ask`, `/api/chat`), `RecuperacionController` (`/api/search`), `ChatController`
-(web/SSE), `BotController` (Teams, `/api/messages`). Sin `springdoc-openapi` ni Swagger —
-no hay OpenAPI generado. `spring-boot-starter-validation` está presente para `@Valid` en
-los DTOs de entrada.
+REST + Server-Sent Events (`ChatController`, sin `springdoc-openapi`/Swagger detectado). Sin
+GraphQL ni gRPC. Adaptador adicional no-REST: Bot Connector de Teams (`BotController`).
 
-## Empaquetado y despliegue
+## Despliegue y empaquetado
 
-Jar por capas habilitado (`spring-boot-maven-plugin` → `<layers><enabled>true</enabled>
-</layers>`) — reconstruir solo repone la capa de aplicación, no las dependencias.
-`Dockerfile` multi-etapa (`deps` → `build` → `layers` → `runtime`) con cache mount de
-BuildKit para `~/.m2`. Sin GraalVM native-image. Ver [`infrastructure.md`](infrastructure.md)
-para el resto del empaquetado (perfiles de Compose, `Dockerfile.bonsai`).
+Jar por capas habilitado (`spring-boot-maven-plugin` → `<layers><enabled>true</enabled></layers>`)
+— reconstruir solo repone la capa de aplicación en `Dockerfile`. Sin GraalVM native-image. Sin
+empaquetado WAR.
 
 ## Transversales
 
-- **Observabilidad**: `spring-boot-starter-actuator`, endpoints `health,info,metrics`
-  expuestos (`management.endpoints.web.exposure.include`), sin backend externo de
-  Micrometer cableado.
-- **Concurrencia**: hilos virtuales habilitados (`spring.threads.virtual.enabled: true`)
-  — el `Executor` de `orquestacion` corre las 6 herramientas de búsqueda en paralelo
-  sobre ellos.
-- **IA**: `spring-ai-*` (Ollama + API compatible con OpenAI) es el runtime de la app;
-  `.mcp.json` en la raíz es instrumentación de Claude Code, no parte del runtime.
-- **Mensajería**: ninguna (sin Kafka/RabbitMQ/JMS) — la cola de ingesta (`ingest_jobs`)
-  es una tabla Postgres con `SELECT … FOR UPDATE SKIP LOCKED`, no un broker.
+Observabilidad: `spring-boot-starter-actuator` en el classpath, exposición real no confirmada (ver
+[infrastructure.md](infrastructure.md)). Sin `resilience4j`/Spring Retry ni mensajería
+(Kafka/RabbitMQ/JMS) detectados. Señal de IA: `spring-ai-*` (ver arriba) y la instrumentación para agentes
+(`.mcp.json`, hooks) la instala `/sdlc-ia:instrument-agent-java`, la misma etapa F2 de la
+validación.
 
-## Gotchas
+## Reglas reforzadas al editar (hooks del agente)
 
-- **Versiones gestionadas por BOM**: no agregues `<version>` a una dependencia ya
-  cubierta por uno de los 4 BOMs importados.
-- **Sin unit/integration split**: `make test` corre todo, incluidos los tests con
-  Testcontainers (Postgres real).
-- **`allowEmptyShould(true)` en `ArquitecturaTest`**: las 3 reglas de fronteras lo traen
-  puesto porque nacieron antes de que `web`/`teams` existieran (fases F4/F5 del plan).
-  Los paquetes guardados ya tienen clases reales hoy — la regla ya se aplica de verdad,
-  el flag solo tolera el caso vacío sin ocultar violaciones. No es un bug, pero se puede
-  retirar si se quiere que un futuro módulo vacío haga fallar el build en vez de pasar
-  en silencio.
-- **`seguridad` sin `package-info.java`**: sigue siendo módulo Modulith (subpaquete
-  directo del raíz), solo que sin `displayName` propio.
+Desde `/sdlc-ia:instrument-agent-java` (ver `AGENTS.md#hooks-del-agente`), dos de las reglas de
+este documento ya no dependen solo de que alguien las lea:
 
-## Docs relacionados
+- **Versiones centralizadas** (`dependencyManagement`/BOMs arriba): un hook avisa si una edición
+  a `pom.xml` agrega una `<dependency>` con `<version>` literal en vez de un `${property}`.
+- **Migraciones de Flyway inmutables**: un hook bloquea editar un archivo ya existente bajo
+  `src/main/resources/db/migration/` — crear el siguiente `V<n>__...sql` sigue permitido.
 
-- [`architecture.md`](architecture.md) — pipeline funcional completo, esquema de
-  contenedores
-- [`data-model.md`](data-model.md) — esquema de datos y migraciones
-- [`infrastructure.md`](infrastructure.md) — perfiles de despliegue, Docker Compose
-- [`adrs/`](adrs) — decisiones de diseño
+## Gotchas / hotspots
+
+- **`spring-boot-flyway` como módulo aparte de `flyway-core`** en Boot 4 — fácil de omitir al
+  copiar dependencias de un proyecto Boot 3, y el fallo es silencioso (arranca sin migrar).
+- **Testcontainers 2.0 renombró sus módulos** (`postgresql` → `testcontainers-postgresql`) — un
+  agente que copie una dependencia vieja de otro repo se rompe en tiempo de ejecución, no de
+  compilación.

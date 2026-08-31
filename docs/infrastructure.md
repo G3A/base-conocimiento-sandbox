@@ -4,93 +4,74 @@
 
 ### Prerrequisitos
 
-- Docker Desktop con WSL2 (Windows) — todo corre en contenedores, el build de `api`
-  también ocurre dentro de Docker.
-- ~15 GB libres en disco (5 GB de modelos + base + imágenes).
-- 16 GB de RAM (recomendado 32).
-- **Opcional**: GPU NVIDIA con `nvidia-container-toolkit` — detectada automáticamente.
-- Java 21 y el wrapper `./mvnw` (ya incluido) solo hacen falta para desarrollar, **no**
-  para ejecutar el producto.
+- Docker + Docker Compose (el `Makefile` orquesta todo sobre `compose.yml` y sus overrides).
+- JDK 21 (el wrapper `./mvnw` viene commiteado, no hace falta Maven instalado).
+- Opcional: GPU NVIDIA (`nvidia-smi`) — `make up` la detecta sola y aplica `compose.gpu.yml`.
 
 ### Inicio rápido
 
 ```bash
-cp .env.example .env
-make up                 # levanta db, ollama, docling-serve y api
-make pull-models        # ~5 GB, una sola vez (embeddings + reranker)
-make health              # confirma que no falta ningún modelo
-make seed                 # opcional: puebla con el corpus de ejemplo
+cp .env.example .env   # completar variables, ver abajo
+make pull-models       # descarga LLM, embeddings y reranker a KB_DATA_DIR (~5.5 GB, una vez)
+make up                # levanta db, ollama, docling-serve y api
+make health            # confirma que los 4 servicios responden
+make ingest            # ingiere el corpus de ejemplo (vault/documentos)
 ```
-
-`make up` detecta una GPU NVIDIA sola (`nvidia-smi`) y aplica `compose.gpu.yml`
-automáticamente; el perfil CPU (`compose.yml` solo) es el fallback cuando no hay tarjeta.
 
 ### Servicios (local)
 
-| Servicio | Imagen | Puerto (host) | Propósito |
-|---|---|---|---|
-| `api` | build propio (`Dockerfile`, multi-etapa) | `KB_PORT` (8080) | Ingesta, retrieval, orquestación, UI estática, reranker, endpoint de Teams |
-| `db` | `pgvector/pgvector:pg18-trixie` | `POSTGRES_PORT` (55432) | PostgreSQL 18 + pgvector: tabla única de embeddings, FTS, cola de ingesta, auditoría |
-| `ollama` | `ollama/ollama:latest` | `OLLAMA_PORT` (11434) | Sirve `bge-m3` (embeddings) y, según perfil de modelo, el LLM (`gemma3:4b`/Ministral) |
-| `docling-serve` | `quay.io/docling-project/docling-serve-cpu:latest` | — | Extrae PDF/DOCX/PPTX a Markdown ([ADR-0010](adrs/0010-docling-reemplaza-pdfbox.md)) |
-
-El perfil Bonsai agrega un quinto servicio, `llama-server` (`Dockerfile.bonsai`, fork CUDA
-propio) — ver [ADR-0009](adrs/0009-bonsai-8b-integracion-pospuesta.md) y
-[Perfiles de modelo en el README](../README.md#perfiles-de-modelo).
+| Servicio | Imagen | Propósito |
+|---|---|---|
+| `db` | `pgvector/pgvector:pg18-trixie` | Postgres 18 + pgvector: tabla única de embeddings, FTS, cola, auditoría |
+| `ollama` | `ollama/ollama` | `gemma3:4b` (planner/destilación/síntesis) y `bge-m3` (embeddings) |
+| `docling-serve` | `quay.io/docling-project/docling-serve-cpu` | Extrae PDF/DOCX/PPTX a Markdown |
+| `api` | build propio (Java, jar por capas) | Ingesta, retrieval, orquestación, UI estática, endpoint de Teams |
 
 ### Variables de entorno
 
-- `.env.example` es la lista canónica — cópialo a `.env` y ajusta lo que necesites; todos
-  los valores tienen un default razonable.
+- `.env.example` es la lista canónica (31 variables): puertos, credenciales de Postgres, modelo
+  LLM/embeddings activos, flags de las fuentes opcionales (`KB_TEAMS_HABILITADO`,
+  `KB_GRAPH_HABILITADO`, `KB_AZDO_HABILITADO`) y sus credenciales asociadas.
 - Nunca commitees `.env`.
-- No hay `application-{profile}.yml`: toda la variación entre entornos pasa por variables
-  de entorno con default embebido en `application.yml` (`${VAR:default}`).
 
 ## Producción
 
 ### Objetivo de despliegue
 
-Self-hosted, un único host con Docker Compose — **sin nube** por diseño (ver README:
-"Costo cero: modelos abiertos en contenedores locales"). No hay evidencia en el repo de
-un despliegue distinto (sin manifiestos de Kubernetes/Helm, sin Terraform/CDK). "Producción"
-y "desarrollo local" comparten la misma topología de Compose; lo que cambia es el
-`.env` y, opcionalmente, el perfil de modelo (`make up` / `make up-bonsai` /
-`make up-ministral`).
+Docker Compose en una VM/máquina propia — `make up` con el override de GPU si el host la tiene
+(`compose.gpu.yml`); no hay manifiestos de Kubernetes en el repo.
 
 ### Topología
 
-```mermaid
-flowchart LR
-  user[Persona / Teams] -->|HTTP, SSE| api[api\nSpring Boot]
-  bot[Azure Bot Service] -->|Bot Connector| api
-  api --> db[(db\nPostgres + pgvector)]
-  api --> ollama[ollama\nembeddings + LLM]
-  api --> docling[docling-serve\nPDF/DOCX/PPTX]
-  api -. perfil Bonsai .-> llama[llama-server\nBonsai-8B]
-```
-
-Todo lo pesado y persistente cae bajo `KB_DATA_DIR` (`./.data` por defecto, junto al
-repo). El contenido a ingerir vive en `KB_VAULT_DIR`, **fuera** del repo, montado de solo
-lectura salvo que se habilite la carga desde la consola de administración
-(`KB_INGESTA_CARGA_HABILITADA` + `KB_VAULT_MODO=rw`) — ver [ADR-0011](adrs/0011-vault-unificado.md).
+<!-- TODO: describir qué máquina/VM concreta corre esto hoy y si hay algo delante (reverse proxy,
+TLS terminator). No está en el repo — es conocimiento operativo del equipo. -->
 
 ### CI/CD
 
-- **Herramienta**: <!-- TODO: verificar — no se encontró `.github/workflows/`, `azure-pipelines*.yml`, `Jenkinsfile` ni `.gitlab-ci.yml` en el repo; no hay pipeline de CI/CD detectado -->
-- **Trigger**: manual — `make build` / `make verify` localmente antes de un `git push`.
-- **Despliegue**: manual, vía `make up` (o la variante de perfil) en el host de destino;
-  no hay automatización de despliegue en el repo.
+- **Herramienta:** ninguna todavía — no existe `.github/workflows/` en el repo.
+- **Trigger:** —
+- **Pasos:** el camino a producción hoy es **manual**: `docker compose up` / `make up` a mano
+  cuando hace falta. Cerrar esta brecha es exactamente lo que instala
+  `/sdlc-ia:instrument-project-java` (control 8, CI) — ver la validación de F2 en
+  `validacion-workshop/`, en el repositorio del workshop.
+
+## Agente de IA (MCP)
+
+`.mcp.json` (raíz del repositorio, committeado): GitHub vía HTTP con `Authorization: Bearer
+${GITHUB_PAT}`; DBHub vía stdio (`npx @bytebase/dbhub@1.2.1`) con `--dsn ${APP_DSN}` apuntando a la
+base Postgres real de este proyecto (`jdbc:postgresql://localhost:5432/baseconocimiento`) — DBHub
+ya no soporta `--readonly`, así que hoy da lectura y escritura sobre esa base. Ambas variables se
+exportan en el entorno de quien use el agente, nunca se escriben literales en el archivo.
 
 ## Observabilidad
 
-`spring-boot-starter-actuator` expuesto en `/actuator/{health,info,metrics}`
-(`management.endpoints.web.exposure.include`), con `show-details: always` en health. Sin
-Micrometer con backend externo cableado (sin Prometheus/Grafana/OTel en el repo) — TODO
-si se necesita observabilidad más allá de Actuator crudo. `make health` es el chequeo de
-humo real: confirma que ningún modelo falta antes de dar por levantado el stack.
+`spring-boot-starter-actuator` está en el classpath y sus endpoints están expuestos
+(`management.endpoints.web.exposure.include: health,info,metrics`, `application.yml:101-108`), sin
+acotar por perfil — el mismo `application.yml` corre en local y en producción. Nada los consume
+todavía: no hay Prometheus, Grafana ni Micrometer configurado en el repo. Logs: `make logs` sigue
+el log del contenedor `api`; no hay agregador centralizado configurado.
 
 ## Docs relacionados
 
-- [`architecture.md`](architecture.md) — contenedores y pipeline funcional
-- [`java.md`](java.md) — build, empaquetado (jar por capas), Dockerfile
-- [`adrs/`](adrs) — decisiones de infraestructura
+- [Arquitectura](./architecture.md)
+- [Decisiones](./adrs/)
