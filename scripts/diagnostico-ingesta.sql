@@ -21,13 +21,25 @@
 -- tiene que indexar. Ese estado se ve igual que un problema de ranking desde la
 -- interfaz de usuario, y no lo es.
 --
--- Como correrlo (el stack tiene que estar arriba):
+-- Como correrlo (el stack tiene que estar arriba: `docker ps` debe listar kb-db).
+-- Las tres formas quedaron verificadas en Windows; cada shell tiene su trampa.
 --
---   Git Bash / Linux / macOS:
+--   Linux / macOS / Git Bash:
 --     docker exec -i kb-db psql -U kb -d baseconocimiento < scripts/diagnostico-ingesta.sql
 --
---   PowerShell (no soporta redireccion de entrada con `<`):
+--   PowerShell -- `<` NO existe como operador de redireccion de entrada, falla
+--   con "The '<' operator is reserved for future use". Usar la tuberia:
 --     Get-Content scripts/diagnostico-ingesta.sql | docker exec -i kb-db psql -U kb -d baseconocimiento
+--
+--   Cualquier shell, sin depender de la redireccion -- copia el archivo al
+--   contenedor y lo corre con -f:
+--     docker cp scripts/diagnostico-ingesta.sql kb-db:/tmp/diagnostico.sql
+--     docker exec kb-db psql -U kb -d baseconocimiento -f /tmp/diagnostico.sql
+--
+--   OJO en Git Bash con esa ultima: MSYS reescribe /tmp/diagnostico.sql a una
+--   ruta de Windows ANTES de que docker la vea, y psql falla con "No such file
+--   or directory" apuntando a C:/Users/.../Temp/. Se desactiva por invocacion:
+--     MSYS_NO_PATHCONV=1 docker exec kb-db psql -U kb -d baseconocimiento -f /tmp/diagnostico.sql
 
 \echo ''
 \echo '== 1. Cobertura por documento =============================================='
