@@ -36,6 +36,9 @@ make hooks                           # una sola vez: instala los git hooks (Left
 ./mvnw verify                        # build completo
 make build                           # jar sin pruebas (./mvnw -B clean package -DskipTests)
 make check                           # lint + build + test: la señal local de "el repo está bien"
+make gpu-check                       # qué tarjeta ve y cómo la reparte (y cómo forzarlo)
+make jdk-check                       # verifica que el JDK activo pueda compilar (release 25)
+make docling-reciclar                # libera la VRAM que docling retiene entre conversiones
 ```
 
 `make help` lista el resto (perfiles de modelo, `make seed`/`ingest`, `make psql`,
@@ -48,9 +51,17 @@ por defecto de la máquina sea otro.
 
 ## Reglas no obvias
 
-- **Los adaptadores son piel**: `web` y `teams` solo pueden cruzar por la fachada
-  `orquestacion.Consultar` — `ArquitecturaTest` (ArchUnit) rompe el build si alguno
-  llega directo a `recuperacion`, `ingesta`, `modelos`, `llm` o `seguridad`.
+- **Los adaptadores son piel**: `web`, `teams` y `seguridad` solo pueden cruzar por la fachada
+  `orquestacion.Consultar` y `compartido` — `ArquitecturaTest` (ArchUnit) rompe el build si alguno
+  llega directo a `recuperacion`, `ingesta`, `modelos` o `llm`, si el núcleo depende de ellos, o si
+  `web`/`teams` y `seguridad` se mezclan entre sí.
+- **El `Makefile` fija su propio `SHELL` en Windows** — busca el `sh.exe` de Git for Windows y le
+  antepone su directorio al `PATH` cuando el `PATH` viene en formato Windows. Sin eso, `make`
+  invocado desde PowerShell cae a `cmd.exe` y casi ninguna receta funciona (son POSIX). Por eso
+  `make` anda igual desde PowerShell y desde Git Bash.
+- **La GPU se reparte según el hardware**, no según constantes: `make up` lee VRAM, Compute
+  Capability y driver con `nvidia-smi` y decide qué va a la tarjeta (LLM siempre, embeddings desde
+  6 GB, docling desde 8 GB) y con qué arch/tag se compila Bonsai. `make gpu-check` lo explica.
 - **Versiones gestionadas por BOM**: 4 BOMs (`spring-modulith-bom`, `spring-ai-bom`,
   `testcontainers-bom`, `arconia-bom`) fijan versión — no le agregues `<version>` propia
   a una dependencia ya cubierta.
