@@ -1,11 +1,11 @@
-make verificar
+make verificar: comando make up (se supone que usa por defecto gemma3 y no bonsai)
 
 == 0. Los contenedores estan arriba?
 -------------------------------------------------------------------
-kb-api  Up 13 seconds (healthy)
-kb-db   Up 34 seconds (healthy)
-kb-docling-serve        Up 34 seconds (healthy)
-kb-ollama       Up 34 seconds (healthy)
+kb-api  Up About a minute (healthy)
+kb-ollama       Up About a minute (healthy)
+kb-docling-serve        Up About a minute (healthy)
+kb-db   Up About a minute (healthy)
 
 == 1. El arreglo de recuperacion esta EN EL CONTENEDOR?
 -------------------------------------------------------------------
@@ -36,14 +36,23 @@ sin planificador, sin verificador de grounding y sin sintesis.
   Vuelve vacio -> el problema es de BUSQUEDA: sigue en la recuperacion.
 
   Pregunta: cuales son los tipos primitivos en Java
-  SIN RESPUESTA util de /api/search:
-    Error en el servidor remoto: (500) Error interno del servidor.
-  Ojo: que /actuator/health responda NO descarta esto -- /api/search
-  embebe la consulta, y si el modelo de embeddings no esta, se cuelga.
-  Modelos que reporta la api:
-    disponibles: bge-m3:latest, gemma3:4b
-    faltantes  :
-    accion     : ninguna
+  fragmentos devueltos: 10
+
+  documento                     rerank   rango
+  jls25.pdf                       9.89       1
+  jls25.pdf                       9.77       2
+  jls25.pdf                       6.04       3
+  jls25.pdf                       5.46       4
+  jls25.pdf                       4.17       5
+  jls25.pdf                       3.01       6
+  jls25.pdf                       1.24       7
+  jls25.pdf                       1.04       8
+  jls25.pdf                       0.88       9
+  jls25.pdf                       0.51      10
+
+  -> Llego material. Compara el rerank con techo-confianza (paso 1):
+     por debajo del techo la respuesta cae en AMBIGUO y la decide
+     VerificadorGrounding, que es donde se rechaza contenido valido.
 
 == 4. Que decidio el sistema en tus consultas reales
 -------------------------------------------------------------------
@@ -54,11 +63,11 @@ rerank 7.9 caia en AMBIGUO y se rechazaba). Prueba entonces:
   $env:KB_UMBRAL_RELEVANCIA_TECHO_CONFIANZA='6.0'; make up
    id |                pregunta                | candidatos | citas |             respuesta              | latency_ms
   ----+----------------------------------------+------------+-------+------------------------------------+------------
-   17 | tipos primitivos                       |          0 |     0 | No encontr├® informaci├│n suficiente |      23039
-   16 | tipos primitivos                       |          0 |     0 | No encontr├® informaci├│n suficiente |        364
-   15 | cu├íles son los tipos primitivos en jav |          0 |     0 | No encontr├® informaci├│n suficiente |      17584
-   14 | cu├íles son los tipos primitivos en jav |          0 |     0 | No encontr├® informaci├│n suficiente |      11011
-   13 | cu├íles son los tipos primitivos en jav |          0 |     0 | No encontr├® informaci├│n suficiente |      19570
+   17 | tipos primitivos                       |          0 |     0 | No encontré información suficiente |      23039
+   16 | tipos primitivos                       |          0 |     0 | No encontré información suficiente |        364
+   15 | cuáles son los tipos primitivos en jav |          0 |     0 | No encontré información suficiente |      17584
+   14 | cuáles son los tipos primitivos en jav |          0 |     0 | No encontré información suficiente |      11011
+   13 | cuáles son los tipos primitivos en jav |          0 |     0 | No encontré información suficiente |      19570
   (5 rows)
 
 
