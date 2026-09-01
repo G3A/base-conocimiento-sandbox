@@ -46,3 +46,7 @@ node_modules/
 *.o
 *.obj
 *.out
+
+# Informe generado por `make capturar-error`: es una salida, no fuente.
+# Se sube a mano cuando hace falta compartirlo (puede traer datos del entorno).
+scripts/error-api.txt
