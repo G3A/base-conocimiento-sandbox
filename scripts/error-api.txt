@@ -1,0 +1,17 @@
+﻿# Error de kb-api
+
+Generado : 2026-09-01 15:52:52
+Contenedor: running (health: healthy)
+Lineas revisadas: 300
+
+## Resumen (sin marcos de pila)
+
+2026-09-01T20:50:55.695Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.PlanificadorOpenAi             : Fallo al planificar, se usa search_unified como respaldo: com.openai.errors.OpenAIIoException: Request failed
+2026-09-01T20:51:24.037Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.ReformuladorOpenAi             : Fallo al reformular la consulta, se usa la pregunta original: com.openai.errors.OpenAIIoException: Request failed
+2026-09-01T20:51:24.047Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.VerificadorGroundingOpenAi     : Fallo al verificar grounding, se rechaza por precaucion: com.openai.errors.OpenAIIoException: Request failed
+
+## Detalle (con marcos de pila)
+
+2026-09-01T20:50:55.695Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.PlanificadorOpenAi             : Fallo al planificar, se usa search_unified como respaldo: com.openai.errors.OpenAIIoException: Request failed
+2026-09-01T20:51:24.037Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.ReformuladorOpenAi             : Fallo al reformular la consulta, se usa la pregunta original: com.openai.errors.OpenAIIoException: Request failed
+2026-09-01T20:51:24.047Z  WARN 1 --- [base-conocimiento] [mcat-handler-12] c.g.b.llm.VerificadorGroundingOpenAi     : Fallo al verificar grounding, se rechaza por precaucion: com.openai.errors.OpenAIIoException: Request failed
