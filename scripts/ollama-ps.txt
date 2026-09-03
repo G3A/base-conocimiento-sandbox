@@ -1,0 +1,4 @@
+docker exec kb-ollama ollama ps
+NAME                                                        ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+hf.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF:Q4_K_M    24f703ec82e5    3.3 GB    100% CPU     4096       46 minutes from now
+bge-m3:latest                                               790764642607    1.2 GB    100% CPU     4096       43 minutes from now
