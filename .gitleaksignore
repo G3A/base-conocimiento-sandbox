@@ -4,3 +4,8 @@
 # Makefile:52 RERANKER_TOKENIZER_SHA256 -- a public checksum used to verify a downloaded
 # ONNX model file (see `verificar_sha256` in the Makefile), not a credential.
 64902676d834aa44d0885a5e1a38b877bc058c26:Makefile:generic-api-key:52
+
+# Mismo checksum publico de arriba, re-agregado por el revert del PR #31 (e646647): el
+# fingerprint de gitleaks va atado al commit que agrega la linea, asi que restaurar el
+# Makefile entero necesita su propia entrada. No es una credencial nueva.
+e646647b6952a0e4202bb6dcaa50fcebb6ec3c2d:Makefile:generic-api-key:309
