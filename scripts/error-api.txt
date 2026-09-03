@@ -1,0 +1,171 @@
+# Error de kb-api
+
+Generado : 2026-09-02 09:43:34
+Contenedor: running (health: healthy)
+Lineas revisadas: 300
+
+## Resumen (sin marcos de pila)
+
+2026-09-02T14:40:59.596Z ERROR 1 --- [base-conocimiento] [llama:11434/...] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+2026-09-02T14:40:59.602Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+2026-09-02T14:40:59.603Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+2026-09-02T14:40:59.603Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+2026-09-02T14:40:59.604Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+
+## Detalle (con marcos de pila)
+
+2026-09-02T14:40:59.596Z ERROR 1 --- [base-conocimiento] [llama:11434/...] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at java.base/java.util.concurrent.CompletableFuture.wrapInCompletionException(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(Unknown Source) ~[na:na]
+	at com.openai.core.http.RetryingHttpClient.executeAsync$executeWithRetries$lambda$1(RetryingHttpClient.kt:127) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at java.base/java.util.concurrent.CompletableFuture$UniCompletion.claim(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.complete(Unknown Source) ~[na:na]
+	at org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient$1.onResponse(SpringAiOpenAiHttpClient.java:137) ~[spring-ai-openai-2.0.0.jar:2.0.0]
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519) ~[okhttp-4.12.0.jar:na]
+	at io.micrometer.context.ContextSnapshot.lambda$wrap$0(ContextSnapshot.java:91) ~[context-propagation-1.2.1.jar:1.2.1]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) ~[na:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at com.openai.errors.InternalServerException$Builder.build(InternalServerException.kt:105) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:85) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:46) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:196) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl.createStreaming$lambda$3(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+2026-09-02T14:40:59.602Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at java.base/java.util.concurrent.CompletableFuture.wrapInCompletionException(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(Unknown Source) ~[na:na]
+	at com.openai.core.http.RetryingHttpClient.executeAsync$executeWithRetries$lambda$1(RetryingHttpClient.kt:127) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at java.base/java.util.concurrent.CompletableFuture$UniCompletion.claim(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.complete(Unknown Source) ~[na:na]
+	at org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient$1.onResponse(SpringAiOpenAiHttpClient.java:137) ~[spring-ai-openai-2.0.0.jar:2.0.0]
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519) ~[okhttp-4.12.0.jar:na]
+	at io.micrometer.context.ContextSnapshot.lambda$wrap$0(ContextSnapshot.java:91) ~[context-propagation-1.2.1.jar:1.2.1]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) ~[na:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at com.openai.errors.InternalServerException$Builder.build(InternalServerException.kt:105) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:85) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:46) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:196) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl.createStreaming$lambda$3(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+2026-09-02T14:40:59.603Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at java.base/java.util.concurrent.CompletableFuture.wrapInCompletionException(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(Unknown Source) ~[na:na]
+	at com.openai.core.http.RetryingHttpClient.executeAsync$executeWithRetries$lambda$1(RetryingHttpClient.kt:127) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at java.base/java.util.concurrent.CompletableFuture$UniCompletion.claim(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.complete(Unknown Source) ~[na:na]
+	at org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient$1.onResponse(SpringAiOpenAiHttpClient.java:137) ~[spring-ai-openai-2.0.0.jar:2.0.0]
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519) ~[okhttp-4.12.0.jar:na]
+	at io.micrometer.context.ContextSnapshot.lambda$wrap$0(ContextSnapshot.java:91) ~[context-propagation-1.2.1.jar:1.2.1]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) ~[na:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at com.openai.errors.InternalServerException$Builder.build(InternalServerException.kt:105) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:85) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:46) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:196) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl.createStreaming$lambda$3(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+2026-09-02T14:40:59.603Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at java.base/java.util.concurrent.CompletableFuture.wrapInCompletionException(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(Unknown Source) ~[na:na]
+	at com.openai.core.http.RetryingHttpClient.executeAsync$executeWithRetries$lambda$1(RetryingHttpClient.kt:127) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at java.base/java.util.concurrent.CompletableFuture$UniCompletion.claim(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.complete(Unknown Source) ~[na:na]
+	at org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient$1.onResponse(SpringAiOpenAiHttpClient.java:137) ~[spring-ai-openai-2.0.0.jar:2.0.0]
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519) ~[okhttp-4.12.0.jar:na]
+	at io.micrometer.context.ContextSnapshot.lambda$wrap$0(ContextSnapshot.java:91) ~[context-propagation-1.2.1.jar:1.2.1]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) ~[na:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at com.openai.errors.InternalServerException$Builder.build(InternalServerException.kt:105) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:85) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:46) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:196) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl.createStreaming$lambda$3(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+2026-09-02T14:40:59.604Z ERROR 1 --- [base-conocimiento] [oundedElastic-4] o.s.ai.chat.model.MessageAggregator      : Aggregation Error
+java.util.concurrent.CompletionException: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at java.base/java.util.concurrent.CompletableFuture.wrapInCompletionException(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.encodeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.completeThrowable(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniApply.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$Completion.run(Unknown Source) ~[na:na]
+	at com.openai.core.http.RetryingHttpClient.executeAsync$executeWithRetries$lambda$1(RetryingHttpClient.kt:127) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at java.base/java.util.concurrent.CompletableFuture$UniCompletion.claim(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.complete(Unknown Source) ~[na:na]
+	at org.springframework.ai.openai.http.okhttp.SpringAiOpenAiHttpClient$1.onResponse(SpringAiOpenAiHttpClient.java:137) ~[spring-ai-openai-2.0.0.jar:2.0.0]
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519) ~[okhttp-4.12.0.jar:na]
+	at io.micrometer.context.ContextSnapshot.lambda$wrap$0(ContextSnapshot.java:91) ~[context-propagation-1.2.1.jar:1.2.1]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) ~[na:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+Caused by: com.openai.errors.InternalServerException: 500: an error was encountered while running the model: unexpected EOF
+	at com.openai.errors.InternalServerException$Builder.build(InternalServerException.kt:105) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:85) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.core.handlers.ErrorHandler$errorHandler$1.handle(ErrorHandler.kt:46) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:196) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl$createStreaming$2.invoke(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]
+	at com.openai.services.async.chat.ChatCompletionServiceAsyncImpl$WithRawResponseImpl.createStreaming$lambda$3(ChatCompletionServiceAsyncImpl.kt:195) ~[openai-java-core-4.39.1.jar:4.39.1]

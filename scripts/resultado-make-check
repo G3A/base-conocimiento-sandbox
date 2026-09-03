@@ -1,0 +1,37 @@
+make gpu-check
+== Como esta corriendo make ==
+  Shell            : C:/PROGRA~1/Git/usr/bin/sh.exe
+  KB_GPU           : sin definir
+  KB_DOCLING_GPU   : sin definir
+
+== Hardware detectado ==
+name, memory.total [MiB], compute_cap, driver_version
+NVIDIA GeForce RTX 3060 Laptop GPU, 6144 MiB, 8.6, 546.30
+/c/Windows/system32/nvidia-smi
+
+== Lo que make dedujo ==
+  VRAM             : 6144 MiB
+  Compute Cap      : 86   -> BONSAI_CUDA_ARCH=86
+  Driver (mayor)   : 546 -> BONSAI_CUDA_TAG=12.2.2
+  Perfil de compose: GPU
+
+== Reparto de la tarjeta ==
+  LLM                      : GPU
+  Embeddings               : GPU   (umbral KB_VRAM_EMBEDDINGS_GPU=6144 MiB)
+  Extraccion PDF (docling) : CPU   (umbral KB_VRAM_DOCLING_GPU=8192 MiB)
+  Reranker                 : CPU   (build CPU de ONNX Runtime, no lo cambia ninguna variable)
+  KB_EMBEDDINGS_MODELO     : bge-m3 (elegido por make)
+
+== Por que ==
+  Con menos de 6144 MiB, gemma3:4b no entra completo ni estando solo
+  (medido en la T600 de 4 GB: 40% GPU / 60% CPU), asi que darle VRAM a los
+  embeddings solo empeora al LLM: se los manda a CPU, que es una mejora neta
+  medida. Con 6144 MiB o mas entran los dos y los embeddings se quedan en la
+  tarjeta. docling entra recien con 8192 MiB porque no libera su VRAM entre
+  conversiones (bug conocido, ver ADR-0010). Ver docs/investigacion-vram-y-modelo-llm.md.
+
+  Todo eso se puede forzar:  KB_GPU=1|0   KB_DOCLING_GPU=1|0
+                             KB_VRAM_EMBEDDINGS_GPU=...   KB_VRAM_DOCLING_GPU=...
+
+  Si la tarjeta aparece arriba pero el perfil dice CPU, fallo la deteccion, no
+  el hardware: levanta con  KB_GPU=1 make up
