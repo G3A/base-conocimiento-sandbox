@@ -13,17 +13,23 @@ title = "gitleaks config"
 useDefault = true
 
 # Allowlist: example/fixture paths that do not carry real secrets.
-[allowlist]
-description = "Allowed paths and patterns"
+[[allowlists]]
+description = "Allowed paths"
 paths = [
   '''(^|/)\.env\.(example|sample|template)$''',
   '''(^|/)fixtures/''',
   '''(^|/)test(s)?/''',
   '''(^|/)src/test/resources/''',
 ]
+
 # RERANKER_TOKENIZER_SHA256 (Makefile): checksum publico del tokenizador ONNX, no una credencial.
 # Va por regex y no por fingerprint a proposito: el fingerprint queda atado al commit que agrega la
 # linea, y con la estrategia de squash de este repo cada merge que vuelve a tocar el Makefile
 # entero (el revert #32, por ejemplo) la re-agrega bajo un sha nuevo. Ya hicieron falta tres
-# fingerprints para la misma linea; el regex la permite una sola vez y solo a ella.
+# fingerprints para la misma linea; este regex la permite una sola vez y solo a ella.
+# regexTarget = "line": sin eso gitleaks compara el regex contra el secreto (el hex solo), no
+# contra la linea, y el nombre de la variable nunca casa.
+[[allowlists]]
+description = "Checksum publico del tokenizador del reranker"
+regexTarget = "line"
 regexes = [ '''RERANKER_TOKENIZER_SHA256 := [0-9a-f]{64}''' ]
