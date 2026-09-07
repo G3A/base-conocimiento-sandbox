@@ -16,8 +16,209 @@ PS D:\git_public\base-conocimiento-sandbox> curl.exe -s http://localhost:8080/ap
 PS D:\git_public\base-conocimiento-sandbox>
 ---------------------------------------
 
-make up-ministral
-docker ps --format "{{.Names}}  {{.Status}}  {{.Image}}"
-make health
-curl.exe -s -o NUL -w "%{http_code} %{size_download}" http://localhost:8080/app.js
-curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
+PS D:\git_public\base-conocimiento-sandbox> make up-granite41
+ Image base-conocimiento-api Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 543B 0.1s done
+#1 DONE 0.1s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.27kB 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:25-jdk-noble
+#3 ...
+
+#4 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [internal] load metadata for docker.io/library/eclipse-temurin:25-jre-noble
+#5 DONE 1.1s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:25-jdk-noble
+#3 DONE 1.1s
+
+#6 [internal] load .dockerignore
+#6 transferring context: 298B 0.0s done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 DONE 0.0s
+
+#8 [deps 1/6] FROM docker.io/library/eclipse-temurin:25-jdk-noble@sha256:534968c051301957beae735e7ba1db54d99ddecf08746d3b9d4f318cc132dbc3
+#8 resolve docker.io/library/eclipse-temurin:25-jdk-noble@sha256:534968c051301957beae735e7ba1db54d99ddecf08746d3b9d4f318cc132dbc3 0.0s done
+#8 DONE 0.0s
+
+#9 [runtime 1/7] FROM docker.io/library/eclipse-temurin:25-jre-noble@sha256:b4c93a50fc67612798db73d68ca3b0ee4ebdd51736e59cca370e689b9797037e
+#9 resolve docker.io/library/eclipse-temurin:25-jre-noble@sha256:b4c93a50fc67612798db73d68ca3b0ee4ebdd51736e59cca370e689b9797037e
+#9 resolve docker.io/library/eclipse-temurin:25-jre-noble@sha256:b4c93a50fc67612798db73d68ca3b0ee4ebdd51736e59cca370e689b9797037e 0.0s done
+#9 DONE 0.1s
+
+#7 [internal] load build context
+#7 transferring context: 14.51kB 0.0s done
+#7 DONE 0.1s
+
+#10 [build 2/2] RUN --mount=type=cache,target=/root/.m2,id=maven-repo     ./mvnw -o -B -q clean package -DskipTests
+#10 CACHED
+
+#11 [deps 6/6] RUN --mount=type=cache,target=/root/.m2,id=maven-repo     ./mvnw -B -q       -Daether.connector.basic.downstreamThreads=10       -Daether.metadataResolver.threads=10       -Daether.dependencyCollector.bf.threads=10       dependency:go-offline
+#11 CACHED
+
+#12 [runtime 5/7] COPY --from=layers --chown=kb:kb /layers/dependencies/ ./
+#12 CACHED
+
+#13 [deps 2/6] WORKDIR /build
+#13 CACHED
+
+#14 [deps 5/6] RUN chmod +x mvnw
+#14 CACHED
+
+#15 [runtime 3/7] RUN useradd --system --create-home --uid 10001 kb
+#15 CACHED
+
+#16 [build 1/2] COPY src/ src/
+#16 CACHED
+
+#17 [layers 1/1] RUN cp /build/target/*.jar /tmp/app.jar  && mkdir -p /layers  && java -Djarmode=tools -jar /tmp/app.jar extract --layers --destination /layers
+#17 CACHED
+
+#18 [deps 3/6] COPY .mvn/ .mvn/
+#18 CACHED
+
+#19 [runtime 2/7] RUN apt-get update  && apt-get install -y --no-install-recommends ripgrep curl  && rm -rf /var/lib/apt/lists/*
+#19 CACHED
+
+#20 [deps 4/6] COPY mvnw pom.xml ./
+#20 CACHED
+
+#21 [runtime 6/7] COPY --from=layers --chown=kb:kb /layers/snapshot-dependencies/ ./
+#21 CACHED
+
+#22 [runtime 4/7] WORKDIR /app
+#22 CACHED
+
+#23 [runtime 7/7] COPY --from=layers --chown=kb:kb /layers/application/ ./
+#23 CACHED
+
+#24 exporting to image
+#24 exporting layers done
+#24 exporting manifest sha256:ec96c96a42f97f4899e612456b1069ee1b9098d4110eda9d0a43caf6b4817a88 done
+#24 exporting config sha256:2e86b8048a056ddec5dd08bc663da5ed2adb929a2e580151314b298b22dfca2d done
+#24 exporting attestation manifest sha256:4088b1773082d811738079fa3678658569dbe284a8adb190fe9132d6c6f990d0
+#24 exporting attestation manifest sha256:4088b1773082d811738079fa3678658569dbe284a8adb190fe9132d6c6f990d0 0.0s done
+#24 exporting manifest list sha256:1e2d66ef8fd3c42225a451f06853a4ff8b34e64d4a02841d2633a698b28fc8e2 0.0s done
+#24 naming to docker.io/library/base-conocimiento-api:latest done
+#24 unpacking to docker.io/library/base-conocimiento-api:latest 0.0s done
+#24 DONE 0.2s
+
+#25 resolving provenance for metadata file
+#25 DONE 0.0s
+ Image base-conocimiento-api Built
+ Network base-conocimiento_default Creating
+ Network base-conocimiento_default Creating
+ Network base-conocimiento_default Created
+ Network base-conocimiento_default Created
+ Container kb-ollama Creating
+ Container kb-db Creating
+ Container kb-docling-serve Creating
+ Container kb-ollama Created
+ Container kb-db Created
+ Container kb-docling-serve Created
+ Container kb-api Creating
+ Container kb-api Created
+ Container kb-db Starting
+ Container kb-docling-serve Starting
+ Container kb-ollama Starting
+ Container kb-docling-serve Started
+ Container kb-db Started
+ Container kb-ollama Started
+ Container kb-docling-serve Waiting
+ Container kb-db Waiting
+ Container kb-ollama Waiting
+ Container kb-db Healthy
+ Container kb-ollama Healthy
+ Container kb-docling-serve Healthy
+ Container kb-api Starting
+ Container kb-api Started
+PS D:\git_public\base-conocimiento-sandbox> docker ps --format "{{.Names}}  {{.Status}}  {{.Image}}"
+kb-api  Up 3 seconds (health: starting)  base-conocimiento-api
+kb-db  Up 39 seconds (healthy)  pgvector/pgvector:pg18-trixie
+kb-docling-serve  Up 39 seconds (healthy)  quay.io/docling-project/docling-serve-cpu:latest
+kb-ollama  Up 39 seconds (healthy)  ollama/ollama:latest
+PS D:\git_public\base-conocimiento-sandbox> make health
+{
+    "components": {
+        "db": {
+            "details": {
+                "database": "PostgreSQL",
+                "validationQuery": "isValid()"
+            },
+            "status": "UP"
+        },
+        "diskSpace": {
+            "details": {
+                "total": 1081101176832,
+                "free": 991046717440,
+                "threshold": 10485760,
+                "path": "/app/.",
+                "exists": true
+            },
+            "status": "UP"
+        },
+        "docling": {
+            "status": "UP"
+        },
+        "livenessState": {
+            "status": "UP"
+        },
+        "ollama": {
+            "details": {
+                "urlBase": "http://ollama:11434",
+                "modelosDisponibles": [
+                    "bge-m3:latest",
+                    "gemma3:4b",
+                    "granite4.1:3b",
+                    "hf.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF:Q4_K_M"
+                ],
+                "modelosFaltantes": [],
+                "accion": "ninguna"
+            },
+            "status": "UP"
+        },
+        "ping": {
+            "status": "UP"
+        },
+        "readinessState": {
+            "status": "UP"
+        },
+        "reranker": {
+            "details": {
+                "ruta": "/models/reranker",
+                "modeloPresente": true,
+                "tokenizadorPresente": true,
+                "accion": "ninguna"
+            },
+            "status": "UP"
+        },
+        "ssl": {
+            "details": {
+                "expiringChains": [],
+                "invalidChains": [],
+                "validChains": []
+            },
+            "status": "UP"
+        }
+    },
+    "groups": [
+        "liveness",
+        "readiness"
+    ],
+    "status": "UP"
+}
+PS D:\git_public\base-conocimiento-sandbox> curl.exe -s -o NUL -w "%{http_code} %{size_download}" http://localhost:8080/app.js
+000 0
+PS D:\git_public\base-conocimiento-sandbox> curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
+
+      `<input type="text" class="eleccion-texto" value="${escaparHtml(alternativas[0])}" spellcheck="false">` +
+    const campoTexto = turno.eleccion.querySelector(".eleccion-texto");
+
