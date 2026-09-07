@@ -14,3 +14,10 @@ PS D:\git_public\base-conocimiento-sandbox> curl.exe -s -o NUL -w "%{http_code} 
 000 0
 PS D:\git_public\base-conocimiento-sandbox> curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
 PS D:\git_public\base-conocimiento-sandbox>
+---------------------------------------
+
+make up-ministral
+docker ps --format "{{.Names}}  {{.Status}}  {{.Image}}"
+make health
+curl.exe -s -o NUL -w "%{http_code} %{size_download}" http://localhost:8080/app.js
+curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
