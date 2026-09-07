@@ -1,7 +1,16 @@
-docker ps --format "{{.Names}}  {{.Status}}  {{.Image}}  {{.Ports}}"
-docker inspect kb-api --format '{{.Image}}'
-docker image inspect base-conocimiento-api:latest --format '{{.Id}}'
-docker inspect kb-api --format '{{.Created}}'
-docker inspect kb-api --format '{{index .Config.Labels \"com.docker.compose.project.working_dir\"}}'
-curl.exe -s -o NUL -w "%{http_code} %{size_download}" http://localhost:8080/app.js
-curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
+PS D:\git_public\base-conocimiento-sandbox> docker ps --format "{{.Names}}  {{.Status}}  {{.Image}}  {{.Ports}}"
+PS D:\git_public\base-conocimiento-sandbox> docker inspect kb-api --format '{{.Image}}'
+
+error: no such object: kb-api
+PS D:\git_public\base-conocimiento-sandbox> docker image inspect base-conocimiento-api:latest --format '{{.Id}}'
+sha256:a46d3b47661c71948a869965c28b50f72ed1f83662ea617e167808146f2049d5
+PS D:\git_public\base-conocimiento-sandbox> docker inspect kb-api --format '{{.Created}}'
+
+error: no such object: kb-api
+PS D:\git_public\base-conocimiento-sandbox> docker inspect kb-api --format '{{index .Config.Labels \"com.docker.compose.project.working_dir\"}}'
+
+error: no such object: kb-api
+PS D:\git_public\base-conocimiento-sandbox> curl.exe -s -o NUL -w "%{http_code} %{size_download}" http://localhost:8080/app.js
+000 0
+PS D:\git_public\base-conocimiento-sandbox> curl.exe -s http://localhost:8080/app.js | Select-String eleccion-texto
+PS D:\git_public\base-conocimiento-sandbox>
