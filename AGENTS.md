@@ -16,7 +16,8 @@ de datos, decisiones y contexto más amplio, sigue los enlaces y lee la fuente.
 - [`docs/infrastructure.md`](docs/infrastructure.md) — Docker Compose, perfiles de
   modelo, despliegue.
 - [`docs/business.md`](docs/business.md) — qué es el producto.
-- [`docs/adrs/`](docs/adrs) — 11 decisiones de diseño no obvias leyendo el código.
+- [`docs/adrs/`](docs/adrs) — 13 decisiones de diseño no obvias leyendo el código, desde la tabla
+  única de embeddings hasta el módulo de acciones independiente del RAG.
 - [`docs/plans/plan-base-conocimiento.md`](docs/plans/plan-base-conocimiento.md) — plan
   de ejecución fase por fase, con hallazgos reales.
 - [`docs/investigacion-vram-y-modelo-llm.md`](docs/investigacion-vram-y-modelo-llm.md) —
@@ -51,10 +52,15 @@ por defecto de la máquina sea otro.
 
 ## Reglas no obvias
 
-- **Los adaptadores son piel**: `web`, `teams` y `seguridad` solo pueden cruzar por la fachada
-  `orquestacion.Consultar` y `compartido` — `ArquitecturaTest` (ArchUnit) rompe el build si alguno
-  llega directo a `recuperacion`, `ingesta`, `modelos` o `llm`, si el núcleo depende de ellos, o si
-  `web`/`teams` y `seguridad` se mezclan entre sí.
+- **Los adaptadores son piel**: `web`, `teams` y `seguridad` solo pueden cruzar por las dos
+  fachadas, `orquestacion.Consultar` (el RAG) y `acciones.Acciones` (resumir, sintetizar,
+  preguntas, ideas y traducir sobre documentos elegidos), y `compartido` — `ArquitecturaTest`
+  (ArchUnit) rompe el build si alguno llega directo a `recuperacion`, `ingesta`, `modelos` o
+  `llm`, si el núcleo depende de ellos, o si `web`/`teams` y `seguridad` se mezclan entre sí.
+- **`acciones` es independiente del RAG**: comparte con `orquestacion` solo el vault indexado (SQL
+  propio sobre `documents`/`chunks`) y el cliente del LLM (`llm`); nunca `Consultar`, el planner,
+  el retrieval ni `query_log`. Otra regla de `ArquitecturaTest` lo hace cumplir — ver
+  [ADR-0013](docs/adrs/0013-modulo-acciones-independiente-del-rag.md).
 - **El `Makefile` fija su propio `SHELL` en Windows** — busca el `sh.exe` de Git for Windows y le
   antepone su directorio al `PATH` cuando el `PATH` viene en formato Windows. Sin eso, `make`
   invocado desde PowerShell cae a `cmd.exe` y casi ninguna receta funciona (son POSIX). Por eso
