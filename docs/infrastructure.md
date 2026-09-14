@@ -58,20 +58,49 @@ TLS terminator). No está en el repo — es conocimiento operativo del equipo. -
 
 ### CI/CD
 
-- **Herramienta:** ninguna todavía — no existe `.github/workflows/` en el repo.
-- **Trigger:** —
-- **Pasos:** el camino a producción hoy es **manual**: `docker compose up` / `make up` a mano
-  cuando hace falta. Cerrar esta brecha es exactamente lo que instala
-  `/sdlc-ia:instrument-project-java` (control 8, CI) — ver la validación de F2 en
-  `validacion-workshop/`, en el repositorio del workshop.
+- **Herramienta:** GitHub Actions, `.github/workflows/ci.yml`.
+- **Trigger:** push a cualquier rama, más las PR abiertas desde forks. Un segundo push a la misma
+  rama cancela la corrida anterior.
+- **Pasos (job `check`):** instala gitleaks 8.30.1 (con verificación de checksum) y JDK 25, corre
+  `make ci` (lint, build, pruebas y escaneo de secretos) y publica los reportes de Surefire como
+  artefacto.
+- **CD:** no hay. El camino a producción sigue siendo **manual**: `make up` a mano cuando hace falta.
+- **Gobernanza:** un [Ruleset de GitHub](https://github.com/G3A/base-conocimiento-sandbox/rules) sobre
+  `dev` exige el workflow `CI` en verde y al menos 1 aprobación antes de habilitar el merge. El
+  gate local (hooks, `make check`) es una convención; el Ruleset es lo que lo vuelve obligatorio.
+  Como el repo tiene una sola persona y nadie aprueba su propia PR, el Ruleset lleva el rol admin
+  como bypass.
 
-## Agente de IA (MCP)
+## Agente de IA (hooks y MCP)
 
-`.mcp.json` (raíz del repositorio, committeado): GitHub vía HTTP con `Authorization: Bearer
-${GITHUB_PAT}`; DBHub vía stdio (`npx @bytebase/dbhub@1.2.1`) con `--dsn ${APP_DSN}` apuntando a la
-base Postgres real de este proyecto (`jdbc:postgresql://localhost:5432/baseconocimiento`) — DBHub
-ya no soporta `--readonly`, así que hoy da lectura y escritura sobre esa base. Ambas variables se
-exportan en el entorno de quien use el agente, nunca se escriben literales en el archivo.
+Exclusivo de Claude Code: ningún otro agente de IA lee hoy estos archivos.
+
+### Hooks
+
+Instalados por `/sdlc-ia:instrument-agent-java` en `scripts/agent-hooks/` (bash puro) y
+registrados en `.claude/settings.json`: 6 scripts.
+
+| Hook | Bloquea | Qué hace |
+|---|---|---|
+| Secret read-guard | Sí | Antes de `Bash` y `Read`, deniega leer `.env`, claves privadas, `secrets.json`, etc. No cubre `@`-referencias ni Grep/Glob. |
+| Bloqueo de comandos peligrosos | Sí | Antes de `Bash`: `rm -rf` fuera del repo, `sudo`, force-push a `main`/`dev`, `git reset --hard`, `mvn deploy`. No es un sandbox: texto, no un parser de shell. |
+| Dependency sweep | No | Al iniciar o reanudar sesión, `mvn versions:display-dependency-updates`. |
+| Audit log | No | Registra el `tool_input` completo de cada llamada en `logs/audit.log` (gitignored). Puede contener cualquier cosa que haya pasado por una herramienta. |
+| Version-pin guard | Avisa | Tras editar `pom.xml`, avisa si una dependencia nueva trae `<version>` literal en vez de heredarla de `<dependencyManagement>`. |
+| Generated-files guard | Sí | Deniega editar una migración de Flyway ya existente bajo `db/migration/`; crear la siguiente sigue permitido. |
+
+### MCP
+
+`.mcp.json` está committeado. Cada máquina lo aprueba una vez: correr `claude` en el repo, aceptar
+el diálogo de confianza del workspace y confirmar cada servidor con `/mcp`.
+
+| Servidor | Da acceso a | Variable de entorno |
+|---|---|---|
+| GitHub (HTTP, `Authorization: Bearer ${GITHUB_PAT}`) | Issues, Pull Requests, runs de Actions | `GITHUB_PAT` |
+| DBHub (stdio, `npx @bytebase/dbhub@1.2.1 --dsn ${APP_DSN}`) | Lectura **y escritura** sobre la base Postgres real: DBHub ya no soporta `--readonly` | `APP_DSN` (ej. `postgres://kb:kb@localhost:5432/baseconocimiento?sslmode=disable`) |
+
+Las dos variables se exportan en el entorno de quien use el agente; nunca se escriben literales en
+el archivo. Context7 no se instaló; se puede sumar con `/sdlc-ia:instrument-agent-java`.
 
 ## Observabilidad
 
