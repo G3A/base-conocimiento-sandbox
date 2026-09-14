@@ -16,6 +16,10 @@ de datos, decisiones y contexto más amplio, sigue los enlaces y lee la fuente.
 - [`docs/infrastructure.md`](docs/infrastructure.md) — Docker Compose, perfiles de
   modelo, despliegue.
 - [`docs/business.md`](docs/business.md) — qué es el producto.
+- [`docs/design-tokens.md`](docs/design-tokens.md) — los tokens que ya definen `index.html` y
+  `admin.html`, y en qué divergen.
+- [`COMPONENTS.md`](COMPONENTS.md) — léelo antes de escribir UI; hoy no hay estructura de
+  componentes.
 - [`docs/adrs/`](docs/adrs) — 13 decisiones de diseño no obvias leyendo el código, desde la tabla
   única de embeddings hasta el módulo de acciones independiente del RAG.
 - [`docs/plans/plan-base-conocimiento.md`](docs/plans/plan-base-conocimiento.md) — plan
