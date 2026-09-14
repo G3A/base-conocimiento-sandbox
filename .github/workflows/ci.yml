@@ -1,26 +1,26 @@
 name: CI
 
 on:
-  # Every branch, every push. A gate that only runs on main tells the team about breakage after it
-  # is already shared; on a feature branch it tells the person who wrote it, while they still have
-  # the context.
-  push:
-  # Adds pull requests opened from forks, whose commits never triggered the push event above.
+  # Every pull request, from this repository or a fork: that is the run the Ruleset reads on a work
+  # branch. Before the PR exists, the pre-push hook (`make check`) warns locally.
   pull_request:
+  # And every commit that lands on dev, so the integrated branch has its own green.
+  #
+  # Do NOT go back to `push:` on every branch plus an `if` that skips the job on same-repo pull
+  # requests (mirror of G3A/workshop-desarrollo-sw-guiado-por-ia#132): a job skipped by an `if`
+  # reports "Success" as a required status check, and the skipped copy can stand in for a red one
+  # on the same commit.
+  push:
+    branches: [dev]
 
-# One run per branch. A second push cancels the first instead of queueing behind it.
+# One run per ref. A second push cancels the first instead of queueing behind it.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
-    # Without this, every pull request inside this repository runs twice: once for the push to its
-    # branch and once for the pull_request event. Fork PRs still run -- their push never reached
-    # this repository.
-    if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name != github.repository
+    # No `if`, on purpose: this is the required check, and it must never have a skipped copy.
     runs-on: ubuntu-latest
 
     steps:

@@ -59,8 +59,10 @@ TLS terminator). No está en el repo — es conocimiento operativo del equipo. -
 ### CI/CD
 
 - **Herramienta:** GitHub Actions, `.github/workflows/ci.yml`.
-- **Trigger:** push a cualquier rama, más las PR abiertas desde forks. Un segundo push a la misma
-  rama cancela la corrida anterior.
+- **Trigger:** toda PR, más cada push a `dev`. Un push a una rama sin PR no corre CI: ahí avisa el
+  pre-push local (`make check`). Un segundo push al mismo ref cancela la corrida anterior. El job
+  `check` no tiene `if`: un job saltado por un condicional cuenta como exitoso para un check
+  requerido, y la copia saltada podía tapar un rojo sobre el mismo commit.
 - **Pasos (job `check`):** instala gitleaks 8.30.1 (con verificación de checksum) y JDK 25, corre
   `make ci` (lint, build, pruebas y escaneo de secretos) y publica los reportes de Surefire como
   artefacto.
