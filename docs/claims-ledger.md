@@ -4,10 +4,13 @@ Generado originalmente por la skill `agent-context-java`. Registra las afirmacio
 de la documentación, su fuente en el repositorio y si fueron confirmadas por una persona. Vuelve a
 ejecutar la skill para regenerarlo.
 
-**Última verificación a mano: 2026-08-31**, leyendo el código. Cuatro afirmaciones habían dejado de
-ser ciertas: dos por la sincronización con el monorepo del workshop, y **dos que ya eran falsas
-cuando se registraron** (Checkstyle/Spotless y el pipeline de CI ya existían en este repositorio).
-Se marcan abajo en vez de borrarlas, porque saber qué dejó de valer vale tanto como saber qué vale.
+**Última verificación a mano: 2026-09-14**, leyendo el código, como espejo de
+G3A/workshop-desarrollo-sw-guiado-por-ia#120. Invalidó una afirmación más y encontró cuatro frases de
+los docs que contradecían filas vigentes. La del 2026-08-31 había encontrado cuatro afirmaciones que
+ya no eran ciertas: dos por la sincronización con el monorepo del workshop, y **dos que ya eran
+falsas cuando se registraron** (Checkstyle/Spotless y el pipeline de CI ya existían en este
+repositorio). Se marcan abajo en vez de borrarlas, porque saber qué dejó de valer vale tanto como
+saber qué vale.
 
 ## Vigentes
 
@@ -22,7 +25,10 @@ Se marcan abajo en vez de borrarlas, porque saber qué dejó de valer vale tanto
 | No hay `springdoc-openapi`/Swagger — sin OpenAPI generado. | `pom.xml` (dependencia ausente) | alta | confirmada |
 | Observabilidad limitada a Actuator (`health,info,metrics`), sin Micrometer con backend externo cableado. | `application.yml`, `pom.xml` (sin `micrometer-registry-*`) | alta | confirmada |
 | Formato, estilo, arquitectura y CI bloquean el build; SpotBugs/PMD y SonarQube siguen ausentes. | `pom.xml` (Spotless, Checkstyle `failOnViolation=true`), `.github/workflows/ci.yml` | alta | confirmada (2026-08-31) |
-| `ArquitecturaTest` tiene 5 pruebas: 4 de ArchUnit (5 `noClasses()`) más `ApplicationModules.verify()`, con `allowEmptyShould(false)` en las de adaptadores, núcleo y `seguridad`. | `ArquitecturaTest.java` | alta | confirmada (2026-08-31) |
+| `ArquitecturaTest` tiene 6 pruebas: 5 de ArchUnit (6 `noClasses()`, las seis con `allowEmptyShould(false)`) más `ApplicationModules.verify()`. | `ArquitecturaTest.java` | alta | confirmada (2026-09-14) |
+| `compartido` son 7 tipos anidados en `Dominio`: `ProyectoId`, `Pregunta`, `IdiomaRespuesta`, `Filtros`, `Fragmento`, `Cita`, `Respuesta`. No existe `Proyecto`. | `compartido/Dominio.java` | alta | confirmada (2026-09-14) |
+| Hay 7 records `@ConfigurationProperties`, registrados con `@ConfigurationPropertiesScan`; un solo `application.yml`, sin `application-{perfil}.yml`. | `BaseConocimientoApplication.java`, `grep -rl "@ConfigurationProperties(" src/main`, `src/main/resources/` | alta | confirmada (2026-09-14) |
+| `.mcp.json` (GitHub y DBHub) y los hooks del agente (6 scripts en `scripts/agent-hooks/`, registrados en `.claude/settings.json`) ya están en el repo. | `.mcp.json`, `.claude/settings.json` | alta | confirmada (2026-09-14) |
 | `seguridad` es módulo Modulith explícito, con `@ApplicationModule` y Javadoc propios, y está cubierto por las reglas en las dos direcciones más su frontera lateral con `web`/`teams`. | `seguridad/package-info.java`, `ArquitecturaTest.seguridadNoSeMezclaConLosOtrosAdaptadores` | alta | confirmada (2026-08-31) |
 | `jqwik` está fijado en 1.9.3 a propósito: 1.10.x imprime una inyección de prompt contra agentes en cada corrida. | `pom.xml` (comentario de `<jqwik.version>`), <https://lwn.net/Articles/1075317/> | alta | confirmada (2026-08-31) |
 | El `Makefile` fija su propio `SHELL` en Windows (el `sh.exe` de Git for Windows) y le antepone su directorio al `PATH` cuando el `PATH` viene en formato Windows. | `Makefile` (bloque `ifeq ($(OS),Windows_NT)`) | alta | confirmada (2026-08-31) — sin eso, `make` desde PowerShell cae a `cmd.exe` y casi ninguna receta funciona |
@@ -38,7 +44,21 @@ Se marcan abajo en vez de borrarlas, porque saber qué dejó de valer vale tanto
 | «No hay Checkstyle, Spotless, SpotBugs, PMD ni SonarQube configurados — solo ArchUnit.» | Checkstyle y Spotless están en el `pom` y bloquean el build. **Esta afirmación ya era falsa cuando se registró**: se marcó como confirmada sin contrastarla contra el `pom`. SpotBugs, PMD y SonarQube sí siguen ausentes. |
 | «No hay pipeline de CI/CD en el repo (sin `.github/workflows/`…).» | `.github/workflows/ci.yml` existe y corre `make ci` en cada push/PR. **También era falsa de antes.** Lo que no hay es CD. |
 | «El paquete `seguridad` … no tiene `package-info.java`/`@ApplicationModule` propio.» | Se trajo del monorepo del workshop, con `@ApplicationModule(displayName = "Seguridad")` y Javadoc. |
-| «Las 3 reglas de fronteras de `ArquitecturaTest` traen `allowEmptyShould(true)`.» | La fusión de las dos versiones del test dejó `allowEmptyShould(false)` en las reglas de adaptadores, núcleo y `seguridad`; solo `compartidoEsHoja` conserva `true`. Y ya no son 3 reglas, son 5 pruebas. |
+| «Las 3 reglas de fronteras de `ArquitecturaTest` traen `allowEmptyShould(true)`.» | La fusión de las dos versiones del test dejó `allowEmptyShould(false)` en las reglas de adaptadores, núcleo y `seguridad`; `compartidoEsHoja` conservó `true` hasta el espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#120, que la pasó a `false`. Y ya no son 3 reglas, son 6 pruebas. |
+| «`ArquitecturaTest` tiene 5 pruebas: 4 de ArchUnit (5 `noClasses()`) más `ApplicationModules.verify()`.» | Se sumó `accionesNoConoceElRagNiLosAdaptadores`: son 6 pruebas, 5 de ArchUnit y 6 `noClasses()`. |
+
+## Docs que contradecían filas vigentes
+
+Encontradas en el espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#120. El registro estaba bien;
+los docs no. Una fila confirmada aquí no corrige sola la frase contraria de otro documento: al
+confirmar una fila, busca la afirmación opuesta en `docs/` y en `AGENTS.md`.
+
+| Frase del doc (ya corregida) | Contradecía |
+|---|---|
+| `infrastructure.md`: «ninguna todavía — no existe `.github/workflows/` en el repo» | La fila del CI: `ci.yml` corre `make ci` en cada push/PR; lo que no hay es CD. |
+| `java.md`: actuator con «exposición real no confirmada» | La fila de observabilidad: `health,info,metrics` en `application.yml`. |
+| `java.md` y `architecture.md`: `compartido` = `Cita`, `Fragmento`, `Proyecto`, `Respuesta` | `compartido/Dominio.java`: 7 tipos, sin `Proyecto`. |
+| `java.md`: TODO «listar las clases `@ConfigurationProperties`» | Las 7 existían, registradas con `@ConfigurationPropertiesScan`. |
 
 ## Notas
 
