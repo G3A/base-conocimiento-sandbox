@@ -61,6 +61,11 @@ jobs:
       - name: Run the same gates as local
         run: make ci
 
+      # Sensor de enlaces (espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#128): un enlace
+      # relativo o un ancla de la documentacion que no resuelve falla aca.
+      - name: Docs links resolve
+        run: node scripts/verificar-enlaces.mjs
+
       # Only useful once Surefire reports exist under target/surefire-reports -- which `make test`
       # already produces via the maven-surefire-plugin.
       - name: Publish test results

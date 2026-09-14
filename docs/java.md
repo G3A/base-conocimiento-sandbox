@@ -128,6 +128,7 @@ el mismo ciclo y falla el build si se cruza una frontera de módulo.
 | SonarQube | Ausente |
 | Compilador | **Presente y bloquea** — `-Xlint:all -Werror` en `maven-compiler-plugin`: cualquier warning rompe el build |
 | Secretos (gitleaks) | **Presente y bloquea** — en pre-commit sobre lo staged (`lefthook.yml`) y en CI (`make ci` suma `secrets`) |
+| Enlaces de la documentación | **Presente y bloquea en CI** — `node scripts/verificar-enlaces.mjs`: un enlace relativo o un ancla de `AGENTS.md`, `COMPONENTS.md`, `README.md` o `docs/` que no resuelve falla el job |
 | CI (`.github/workflows`) | **Presente** — `ci.yml` corre `make ci` en cada push/PR con JDK 25; detalle en [infrastructure.md](infrastructure.md#cicd) |
 
 Spotless usa `google-java-format` (2 espacios) sin `ratchetFrom`: el formato es uniforme en el
