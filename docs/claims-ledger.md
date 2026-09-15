@@ -4,9 +4,11 @@ Generado originalmente por la skill `agent-context-java`. Registra las afirmacio
 de la documentación, su fuente en el repositorio y si fueron confirmadas por una persona. Vuelve a
 ejecutar la skill para regenerarlo.
 
-**Última verificación a mano: 2026-09-14**, leyendo el código, como espejo de
-G3A/workshop-desarrollo-sw-guiado-por-ia#120. Invalidó una afirmación más y encontró cuatro frases de
-los docs que contradecían filas vigentes. La del 2026-08-31 había encontrado cuatro afirmaciones que
+**Última verificación a mano: 2026-09-15**, como espejo de
+G3A/workshop-desarrollo-sw-guiado-por-ia#137: al volver a correr `/sdlc-ia:agent-context-java` en
+modo aumento, tres frases de los docs contradecían el código. La anterior, del 2026-09-14 y espejo
+de G3A/workshop-desarrollo-sw-guiado-por-ia#120, invalidó una afirmación más y encontró cuatro
+frases de los docs que contradecían filas vigentes. La del 2026-08-31 había encontrado cuatro afirmaciones que
 ya no eran ciertas: dos por la sincronización con el monorepo del workshop, y **dos que ya eran
 falsas cuando se registraron** (Checkstyle/Spotless y el pipeline de CI ya existían en este
 repositorio). Se marcan abajo en vez de borrarlas, porque saber qué dejó de valer vale tanto como
@@ -17,7 +19,7 @@ saber qué vale.
 | Afirmación | Fuente | Confianza | Estado |
 |---|---|---|---|
 | El build usa Maven con el wrapper `./mvnw` commiteado. | `mvnw`, `pom.xml` | alta | confirmada |
-| El JDK objetivo es 25, alineado entre `pom.xml` y el `Dockerfile` (`eclipse-temurin:25`). | `pom.xml` (`<java.version>`), `Dockerfile` (deps, build y runtime) | alta | confirmada |
+| El JDK objetivo es 25, alineado entre `pom.xml` y el `Dockerfile` (`eclipse-temurin:25`). | `pom.xml` (`<java.version>`), `Dockerfile` (`eclipse-temurin:25` declarado en `deps` y `runtime`, heredado por `build` y `layers`) | alta | confirmada (2026-09-15: son cuatro etapas, no tres) |
 | La persistencia es `JdbcClient` sin ORM (no JPA/Hibernate) — decisión deliberada para expresar 4 señales de retrieval fusionadas por RRF en SQL a mano. | `pom.xml` (sin `data-jpa` ni `hibernate-core`), `recuperacion/package-info.java` | alta | confirmada |
 | Las migraciones de Flyway se aplican automáticamente al arrancar la app, no en un paso separado de CI. | `application.yml`, `pom.xml` (`spring-boot-flyway`) | alta | confirmada |
 | Spring Modulith trata 9 subpaquetes directos de `co.g3a.baseconocimiento` como módulos; `ApplicationModules.verify()` corre en cada `./mvnw test`. | `BaseConocimientoApplication.java`, `ArquitecturaTest.java`, 9 `package-info.java` | alta | confirmada |
@@ -35,6 +37,8 @@ saber qué vale.
 | El reparto de la GPU se deriva de `nvidia-smi` (VRAM, Compute Capability, driver), no de constantes. | `Makefile` (`GPU_PLAN`), `make gpu-check` | alta | confirmada (2026-08-31) |
 | `docling-serve` no libera la VRAM entre conversiones y `GET /v1/clear/converters` no la recupera; solo reiniciar el proceso. | Medido: 2053 MiB antes y después del endpoint; sesión 27 de `investigacion-vram-y-modelo-llm.md` | alta | confirmada (2026-08-31) |
 | Hay 10 `compose.*.yml` de perfil de modelo; 7 tienen target `up-`/`down-`/`pull-`. | `ls compose.*.yml`, `grep "^up-" Makefile` | alta | confirmada (2026-08-31) |
+| `V1__esquema.sql` crea 6 tablas (`sources`, `documents`, `chunks`, `term_stats`, `ingest_jobs`, `query_log`); V2 a V5 crean una cada una y V6 no crea tablas: agrega `query_log_id` a `streams_en_curso`. | `src/main/resources/db/migration/` (`CREATE TABLE`) | alta | confirmada (2026-09-15) |
+| En producción los secretos salen del mismo archivo `.env` que lee Docker Compose, puesto a mano en el host; no hay gestor de secretos. | usuario | alta | confirmada (2026-09-15) |
 | El despliegue de producción es self-hosted vía Docker Compose en un único host, sin nube. | `README.md` ("Costo cero… sin nube") + ausencia de manifiestos de Kubernetes/Terraform | media | TODO: verificar — hay CI, pero **no** hay CD |
 
 ## Invalidadas por cambios posteriores
@@ -49,8 +53,8 @@ saber qué vale.
 
 ## Docs que contradecían filas vigentes
 
-Encontradas en el espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#120. El registro estaba bien;
-los docs no. Una fila confirmada aquí no corrige sola la frase contraria de otro documento: al
+Encontradas en los espejos de G3A/workshop-desarrollo-sw-guiado-por-ia#120 y #137. El registro
+estaba bien; los docs no. Una fila confirmada aquí no corrige sola la frase contraria de otro documento: al
 confirmar una fila, busca la afirmación opuesta en `docs/` y en `AGENTS.md`.
 
 | Frase del doc (ya corregida) | Contradecía |
@@ -59,6 +63,9 @@ confirmar una fila, busca la afirmación opuesta en `docs/` y en `AGENTS.md`.
 | `java.md`: actuator con «exposición real no confirmada» | La fila de observabilidad: `health,info,metrics` en `application.yml`. |
 | `java.md` y `architecture.md`: `compartido` = `Cita`, `Fragmento`, `Proyecto`, `Respuesta` | `compartido/Dominio.java`: 7 tipos, sin `Proyecto`. |
 | `java.md`: TODO «listar las clases `@ConfigurationProperties`» | Las 7 existían, registradas con `@ConfigurationPropertiesScan`. |
+| `data-model.md`: «no es un paso explícito de CI — no hay CI todavía» (2026-09-15) | La fila del CI. |
+| `architecture.md`: «Cuatro tablas más la cola (`V1__esquema.sql`)» (2026-09-15) | La fila de las migraciones: V1 crea 6 tablas; la frase omitía `term_stats`. |
+| `java.md`: `eclipse-temurin:25` «en las tres etapas (deps, build y runtime)» (2026-09-15) | El `Dockerfile` tiene cuatro: faltaba `layers`. El JDK era correcto. |
 
 ## Notas
 
