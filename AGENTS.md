@@ -13,6 +13,7 @@ Sigue la convención [agents.md](https://agents.md): solo lo no obvio; lee los e
 - [`docs/adrs/`](docs/adrs) — 13 decisiones, desde la tabla única de embeddings hasta el módulo de acciones independiente del RAG.
 - [`docs/plans/`](docs/plans) · [`docs/investigacion-vram-y-modelo-llm.md`](docs/investigacion-vram-y-modelo-llm.md) · [`docs/teams/registro-azure-bot.md`](docs/teams/registro-azure-bot.md).
 - [`docs/claims-ledger.md`](docs/claims-ledger.md) — qué afirma cada doc, su fuente y si sigue vigente.
+- [`REVIEW.md`](REVIEW.md) · [`EXPERIMENTS.md`](EXPERIMENTS.md) — qué mirar en un diff ya escrito (lo lee el servicio de Code Review; no repite las reglas de generación de este archivo) y el acuerdo sobre qué puede fallar con el agente.
 
 ## Comandos
 
