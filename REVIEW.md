@@ -69,7 +69,8 @@ lista es solo para lo que exige criterio.
 *(Añadido para el servicio de Code Review.)*
 
 - Lo que el CI ya bloquea: formato (Spotless), Checkstyle, warnings del compilador (`-Werror`),
-  fronteras de `ArquitecturaTest`, secretos (gitleaks) y enlaces rotos en la documentación.
+  fronteras de `ArquitecturaTest`, secretos (gitleaks) y enlaces rotos en cualquier `.md` del
+  repositorio, incluidos los absolutos a este mismo repositorio.
 
 ---
 

@@ -61,8 +61,11 @@ jobs:
       - name: Run the same gates as local
         run: make ci
 
-      # Sensor de enlaces (espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#128): un enlace
-      # relativo o un ancla de la documentacion que no resuelve falla aca.
+      # Sensor de enlaces (espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#128 y #144): un
+      # enlace o un ancla de CUALQUIER .md del repositorio que no resuelve falla aca, incluidos los
+      # enlaces absolutos a este mismo repositorio. Hasta el espejo de #144 miraba cuatro archivos
+      # fijos mas docs/, asi que REVIEW.md, EXPERIMENTS.md y la plantilla de PR quedaban fuera.
+      # Corre tambien en el pre-push, antes que `make check`.
       - name: Docs links resolve
         run: node scripts/verificar-enlaces.mjs
 
