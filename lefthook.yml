@@ -16,6 +16,18 @@ pre-commit:
 
 pre-push:
   commands:
+    # `priority: 1` is not decoration, and declaration order is not enough: lefthook sorts
+    # sequential commands ALPHABETICALLY, so without it "check" would run first just because of its
+    # name -- and that `make check` takes over two minutes. No point waiting for it to learn about a
+    # broken link that shows up in a second. A command with no `priority` runs last.
+    # https://lefthook.dev/configuration/priority/
+    #
+    # Until now this sensor only ran in CI, so a broken link surfaced after the push. It needs
+    # node >= 18 on PATH, which used to be a CI-only requirement.
+    links:
+      priority: 1
+      run: node scripts/verificar-enlaces.mjs
+      fail_text: "Broken doc links (or node missing from PATH). See scripts/verificar-enlaces.mjs."
     check:
       run: make check
       fail_text: "`make check` failed. Fix it before pushing."

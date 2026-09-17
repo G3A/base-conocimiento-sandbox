@@ -67,7 +67,8 @@ TLS terminator). No está en el repo — es conocimiento operativo del equipo. -
   `check` no tiene `if`: un job saltado por un condicional cuenta como exitoso para un check
   requerido, y la copia saltada podía tapar un rojo sobre el mismo commit.
 - **Pasos (job `check`):** instala gitleaks 8.30.1 (con verificación de checksum) y JDK 25, corre
-  `make ci` (lint, build, pruebas y escaneo de secretos) y publica los reportes de Surefire como
+  `make ci` (lint, build, pruebas y escaneo de secretos) y el sensor de enlaces de la documentación
+  —que también corre en el pre-push, antes que `make check`— y publica los reportes de Surefire como
   artefacto.
 - **CD:** no hay. El camino a producción sigue siendo **manual**: `make up` a mano cuando hace falta.
 - **Gobernanza:** un [Ruleset de GitHub](https://github.com/G3A/base-conocimiento-sandbox/rules) sobre
