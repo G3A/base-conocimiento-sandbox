@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,6 +28,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 class Recuperador implements Buscador {
+
+  private static final Logger log = LoggerFactory.getLogger(Recuperador.class);
 
   private final RecuperacionRepositorio repositorio;
   private final Embeddings embeddings;
@@ -72,6 +76,7 @@ class Recuperador implements Buscador {
       String projectId,
       List<String> tiposPermitidos,
       List<Long> documentosPermitidos) {
+    long tSenales = System.nanoTime();
     Map<Senal, List<CandidatoSenal>> porSenal =
         ejecutarSenalesEnParalelo(
             consulta,
@@ -79,7 +84,9 @@ class Recuperador implements Buscador {
             tiposPermitidos,
             documentosPermitidos,
             propiedades.candidatosPorSenal());
+    long msSenales = (System.nanoTime() - tSenales) / 1_000_000;
 
+    long tFusion = System.nanoTime();
     List<CandidatoFusionado> fusionados =
         RrfFusion.fusionar(
             porSenal,
@@ -88,7 +95,9 @@ class Recuperador implements Buscador {
             propiedades.topePorDocumento(),
             propiedades.maxCandidatos());
     Map<Long, Integer> rangoRrf = rangoPorChunk(fusionados);
+    long msFusion = (System.nanoTime() - tFusion) / 1_000_000;
 
+    long tRerank = System.nanoTime();
     List<Reordenado> reordenados =
         fusionados.stream()
             .map(
@@ -97,6 +106,15 @@ class Recuperador implements Buscador {
             .sorted((a, b) -> Double.compare(b.rerank(), a.rerank()))
             .limit(propiedades.topRerank())
             .toList();
+    long msRerank = (System.nanoTime() - tRerank) / 1_000_000;
+
+    log.info(
+        "MEDICION recuperacion: senales={}ms fusion={}ms rerank={}ms candidatos={} total={}ms",
+        msSenales,
+        msFusion,
+        msRerank,
+        fusionados.size(),
+        msSenales + msFusion + msRerank);
 
     List<ResultadoBusqueda> resultados = new ArrayList<>(reordenados.size());
     for (int i = 0; i < reordenados.size(); i++) {
