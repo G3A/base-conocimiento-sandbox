@@ -17,6 +17,22 @@ lista es solo para lo que exige criterio.
 - [ ] **Las opciones de configuración existen y hacen lo que el diff supone.** Una propiedad
       inventada no falla: se ignora en silencio, y el comportamiento por defecto se lleva la culpa
       meses después.
+- [ ] **Un comentario que afirma cómo se comporta la herramienta es una afirmación, no
+      documentación.** Orden de ejecución, valores por defecto, qué filtra cada campo: si el diff lo
+      asegura en prosa, la PR dice de dónde salió — la documentación oficial, o el experimento que
+      lo comprobó. En el
+      [issue #144](https://github.com/G3A/workshop-desarrollo-sw-guiado-por-ia/issues/144) del
+      monorepo un comentario aseguraba que lefthook corre los comandos en orden de declaración; los
+      corre alfabéticamente, así que el gate de un segundo quedaba detrás del de dos minutos,
+      haciendo exactamente lo contrario de lo que el comentario prometía.
+- [ ] **Un comentario que afirma lo que hace el propio código también es una afirmación.** No solo
+      los que hablan de la herramienta: si la cabecera promete una garantía —«compara modo y
+      contenido», «esto falla si aparece un `100755`»—, busca la línea que la cumple. En el
+      [issue #155](https://github.com/G3A/workshop-desarrollo-sw-guiado-por-ia/issues/155) del
+      monorepo su sensor del espejo prometía en la cabecera cazar el primer `chmod +x` y lo
+      aceptaba en silencio sobre los nueve archivos que su propia lista declaraba: la garantía
+      valía solo para los archivos que nadie toca. El comentario no miente sobre una herramienta
+      ajena, miente sobre el código que tiene debajo, y por eso se lee como documentación.
 - [ ] **Ninguna dependencia nueva entró sin justificación.** Si el diff agrega una, la PR dice por
       qué no bastaba lo que ya había.
 
@@ -39,6 +55,14 @@ lista es solo para lo que exige criterio.
 - [ ] **Hay al menos un caso borde y un caso de error**, no solo el camino feliz.
 - [ ] **Las pruebas fallan si se revierte el cambio.** Es la comprobación que separa una prueba de
       un andamio; si nadie la hizo, hazla tú en local antes de aprobar.
+- [ ] **Un sensor nuevo se sembró por cada camino de fallo, no una vez.** Si falla por seis razones
+      y la PR enseña un rojo, cinco sextos están sin probar, y el sensor pasa a ser el andamio que
+      el ítem anterior busca evitar. Cuenta los caminos en el código —cada `exit 1` y cada aviso— y
+      mira que la PR tenga la salida de cada uno. En el
+      [issue #155](https://github.com/G3A/workshop-desarrollo-sw-guiado-por-ia/issues/155) del
+      monorepo sembrar los seis destapó dos defectos que la lectura no vio, y los dos habrían
+      pasado el CI: el parseo se rompía con CRLF, o sea solo en Windows, y el código de salida era
+      127 en vez de 1.
 
 ## 4 · Deuda técnica
 
