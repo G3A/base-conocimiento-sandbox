@@ -111,6 +111,7 @@ class OrquestadorTest {
 
     assertThat(resultado.respuesta().texto()).isEqualTo("Respuesta citando [1].");
     assertThat(resultado.respuesta().citas()).hasSize(1);
+    assertThat(resultado.respuesta().advertencias()).isEmpty();
     assertThat(resultado.respuesta().citas().get(0).uri()).isEqualTo("file:///doc1");
     assertThat(resultado.respuesta().consultaReformulada()).isNull();
 
@@ -256,6 +257,7 @@ class OrquestadorTest {
 
     assertThat(resultado.respuesta().texto()).isEqualTo(Orquestador.MENSAJE_SIN_INFORMACION);
     assertThat(resultado.respuesta().citas()).isEmpty();
+    assertThat(resultado.respuesta().advertencias()).isEmpty();
     verify(sintetizador, never()).sintetizar(any(), any(), any());
     verify(verificadorGrounding, never()).verificar(any(), any());
   }
@@ -387,6 +389,7 @@ class OrquestadorTest {
 
     assertThat(resultado.respuesta().texto()).isEqualTo("Respuesta citando [1].");
     assertThat(resultado.respuesta().citas()).hasSize(1);
+    assertThat(resultado.respuesta().advertencias()).isEmpty();
   }
 
   @Test
@@ -768,6 +771,7 @@ class OrquestadorTest {
 
     assertThat(resultado.respuesta().texto()).isEqualTo(Orquestador.MENSAJE_SERVIDOR_OCUPADO);
     assertThat(resultado.respuesta().citas()).isEmpty();
+    assertThat(resultado.respuesta().advertencias()).isEmpty();
     verify(planificador, never()).planificar(any(), any());
     verify(sintetizador, never()).sintetizar(any(), any(), any());
     verify(verificadorGrounding, never()).verificar(any(), any());
