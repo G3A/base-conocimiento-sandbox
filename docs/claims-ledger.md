@@ -37,7 +37,8 @@ saber qué vale.
 | El `Makefile` fija su propio `SHELL` en Windows (el `sh.exe` de Git for Windows) y le antepone su directorio al `PATH` cuando el `PATH` viene en formato Windows. | `Makefile` (bloque `ifeq ($(OS),Windows_NT)`) | alta | confirmada (2026-08-31) — sin eso, `make` desde PowerShell cae a `cmd.exe` y casi ninguna receta funciona |
 | El reparto de la GPU se deriva de `nvidia-smi` (VRAM, Compute Capability, driver), no de constantes. | `Makefile` (`GPU_PLAN`), `make gpu-check` | alta | confirmada (2026-08-31) |
 | `docling-serve` no libera la VRAM entre conversiones y `GET /v1/clear/converters` no la recupera; solo reiniciar el proceso. | Medido: 2053 MiB antes y después del endpoint; sesión 27 de `investigacion-vram-y-modelo-llm.md` | alta | confirmada (2026-08-31) |
-| Hay 10 `compose.*.yml` de perfil de modelo; 7 tienen target `up-`/`down-`/`pull-`. | `ls compose.*.yml`, `grep "^up-" Makefile` | alta | confirmada (2026-08-31) |
+| Hay 11 `compose.*.yml` de perfil de modelo; 8 tienen target `up-`/`down-`/`pull-`. | `ls compose.*.yml`, `grep "^up-" Makefile` | alta | confirmada (2026-10-26) |
+| Qwen3.6 35B-A3B (`UD-Q2_K_XL`, 12.3 GB) corre en la T600 de 4 GB con 88 % en CPU, a 4–5 tok/s, fuera del pipeline; en un MoE limita la RAM, no la VRAM. | Medido: sesión 28 de `investigacion-vram-y-modelo-llm.md`, hallazgos 110 y 114 | media | confirmada (2026-10-26): una batería de 5 casos, sin el piloto de 100 preguntas |
 | `V1__esquema.sql` crea 6 tablas (`sources`, `documents`, `chunks`, `term_stats`, `ingest_jobs`, `query_log`); V2 a V5 crean una cada una y V6 no crea tablas: agrega `query_log_id` a `streams_en_curso`. | `src/main/resources/db/migration/` (`CREATE TABLE`) | alta | confirmada (2026-09-15) |
 | En producción los secretos salen del mismo archivo `.env` que lee Docker Compose, puesto a mano en el host; no hay gestor de secretos. | usuario | alta | confirmada (2026-09-15) |
 | El despliegue de producción es self-hosted vía Docker Compose en un único host, sin nube. | `README.md` ("Costo cero… sin nube") + ausencia de manifiestos de Kubernetes/Terraform | media | TODO: verificar — hay CI, pero **no** hay CD |
@@ -51,6 +52,7 @@ saber qué vale.
 | «El paquete `seguridad` … no tiene `package-info.java`/`@ApplicationModule` propio.» | Se trajo del monorepo del workshop, con `@ApplicationModule(displayName = "Seguridad")` y Javadoc. |
 | «Las 3 reglas de fronteras de `ArquitecturaTest` traen `allowEmptyShould(true)`.» | La fusión de las dos versiones del test dejó `allowEmptyShould(false)` en las reglas de adaptadores, núcleo y `seguridad`; `compartidoEsHoja` conservó `true` hasta el espejo de G3A/workshop-desarrollo-sw-guiado-por-ia#120, que la pasó a `false`. Y ya no son 3 reglas, son 6 pruebas. |
 | «`ArquitecturaTest` tiene 5 pruebas: 4 de ArchUnit (5 `noClasses()`) más `ApplicationModules.verify()`.» | Se sumó `accionesNoConoceElRagNiLosAdaptadores`: son 6 pruebas, 5 de ArchUnit y 6 `noClasses()`. |
+| «Hay 10 `compose.*.yml` de perfil de modelo; 7 tienen target `up-`/`down-`/`pull-`.» | El perfil `compose.qwen36.yml` (G3A/workshop-desarrollo-sw-guiado-por-ia#250) sumó un archivo y sus tres targets: hoy son 11 y 8. |
 
 ## Docs que contradecían filas vigentes
 
