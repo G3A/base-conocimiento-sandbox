@@ -8,7 +8,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const STATIC = path.join(__dirname, "..", "..", "main", "resources", "static");
-const { partir, dividirEnLineas, primerSegmentoDistinto } = require(path.join(STATIC, "codigo.js"));
+const { partir, dividirEnLineas, primerSegmentoDistinto, detectarLenguaje } = require(path.join(STATIC, "codigo.js"));
 
 const texto = (t) => ({ tipo: "texto", texto: t });
 const codigo = (lenguaje, c, cerrado) => ({ tipo: "codigo", lenguaje: lenguaje, codigo: c, cerrado: cerrado });
@@ -125,6 +125,37 @@ test("primerSegmentoDistinto da el indice desde el que hay que repintar", () => 
   assert.equal(primerSegmentoDistinto(a, [texto("y")]), 0);
   assert.equal(primerSegmentoDistinto([], a), 0);
   assert.equal(primerSegmentoDistinto(a, [texto("x"), codigo("js", "a", false), texto("z")]), 2);
+});
+
+// El highlight.js vendorizado, cargado como lo carga la pagina (un script que
+// declara la global hljs), para probar la deteccion contra la libreria real.
+function cargarHljs() {
+  const vm = require("node:vm");
+  const contexto = {};
+  vm.createContext(contexto);
+  const fuente = fs.readFileSync(path.join(STATIC, "vendor", "highlight", "highlight.min.js"), "utf8");
+  vm.runInContext(fuente + ";this.hljs = hljs;", contexto);
+  return contexto.hljs;
+}
+
+test("detectarLenguaje acierta con lo que mas aparece en esta base de conocimiento", () => {
+  const hljs = cargarHljs();
+  const detectado = (c) => detectarLenguaje(hljs, c).lenguaje;
+  // Con los 36 lenguajes de la build, highlightAuto daba css para este SQL.
+  assert.equal(detectado("SELECT q.question, q.advertencias\n  FROM query_log q\n WHERE q.advertencias IS NOT NULL;"), "sql");
+  assert.equal(detectado("services:\n  api:\n    image: kb\n    ports:\n      - 8080:8080"), "yaml");
+  assert.equal(detectado('{\n  "a": 1,\n  "b": [true, null]\n}'), "json");
+  assert.equal(detectado("<dependency>\n  <groupId>org.x</groupId>\n</dependency>"), "xml");
+  assert.equal(detectado("@Service\nclass Consultar {\n  private final JdbcClient jdbc;\n  Consultar(JdbcClient jdbc) { this.jdbc = jdbc; }\n}"), "java");
+});
+
+test("detectarLenguaje prefiere no decir nada antes que equivocarse", () => {
+  const hljs = cargarHljs();
+  const prosa = detectarLenguaje(hljs, "Primero levanta el stack y despues ingesta <b>.");
+  assert.equal(prosa.lenguaje, null);
+  assert.equal(prosa.html, "Primero levanta el stack y despues ingesta &lt;b&gt;.");
+  // Relevancia 1: con los 36 lenguajes salia java.
+  assert.equal(detectarLenguaje(hljs, "CREATE TABLE documento (\n  id BIGSERIAL PRIMARY KEY\n);").lenguaje, null);
 });
 
 test("la pagina no carga nada por la red: la app es 100 % local", () => {

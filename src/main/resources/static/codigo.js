@@ -139,7 +139,35 @@
     return limite;
   }
 
-  const api = { partir: partir, dividirEnLineas: dividirEnLineas, primerSegmentoDistinto: primerSegmentoDistinto };
+  // Para un bloque sin lenguaje declarado. highlightAuto sobre los 36 lenguajes
+  // de la build se equivoca justo con lo que mas aparece aca (le pone css a un
+  // SELECT, csharp a una clase Java, go a unos comandos de make: medido con
+  // 11.12.0 al escribir esto; el caso del SELECT queda en codigo.test.js). Se
+  // limita a los lenguajes de los repositorios
+  // y documentos que ingiere esta base, y una relevancia baja no se rotula: un
+  // "texto" sin color es mejor que un lenguaje equivocado.
+  const LENGUAJES_DETECTABLES = ["java", "sql", "bash", "yaml", "json", "xml", "javascript", "python", "ini"];
+  const RELEVANCIA_MINIMA = 3;
+
+  /**
+   * Devuelve { html, lenguaje } con el HTML ya escapado por highlight.js;
+   * lenguaje es null cuando no se reconoce ninguno con confianza. Recibe hljs
+   * para seguir siendo un modulo puro (las pruebas le pasan el vendorizado).
+   */
+  function detectarLenguaje(hljs, codigo) {
+    const detectado = hljs.highlightAuto(codigo, LENGUAJES_DETECTABLES);
+    if (detectado.language && detectado.relevance >= RELEVANCIA_MINIMA) {
+      return { html: detectado.value, lenguaje: detectado.language };
+    }
+    return { html: hljs.highlight(codigo, { language: "plaintext" }).value, lenguaje: null };
+  }
+
+  const api = {
+    partir: partir,
+    dividirEnLineas: dividirEnLineas,
+    primerSegmentoDistinto: primerSegmentoDistinto,
+    detectarLenguaje: detectarLenguaje,
+  };
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
   } else {
