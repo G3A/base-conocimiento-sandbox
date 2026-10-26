@@ -499,8 +499,7 @@
   }
 
   function renderizarStreamResuelto(conversacionId, turno, estado, proyecto) {
-    turno.respuestaTerminada = true;
-    fijarRespuesta(turno, estado.texto);
+    fijarRespuesta(turno, estado.texto, true);
     const huboError = estado.estado === "error";
     turno.estado.textContent = huboError ? "La respuesta quedó incompleta." : "Respondido";
     turno.estado.classList.add(huboError ? "error" : "completado");
@@ -565,8 +564,7 @@
     turno.citas.innerHTML = registro.citas && registro.citas.length
       ? registro.citas.map((c, i) => itemCita(c, i + 1)).join("")
       : "<li>Sin citas.</li>";
-    turno.respuestaTerminada = true;
-    fijarRespuesta(turno, registro.respuesta);
+    fijarRespuesta(turno, registro.respuesta, true);
     if (tipo !== "pregunta") {
       renderCobertura(turno, registro.cobertura || []);
       if (tipo === "preguntas" || tipo === "ideas") {
@@ -727,8 +725,13 @@
   // como HTML: innerHTML solo recibe la salida de hljs, que escapa todo lo que
   // no es su propio <span class>, incluido el modo "plaintext".
 
-  function fijarRespuesta(turno, texto) {
+  // "terminado": la respuesta llega entera de una vez (historial, sondeo
+  // resuelto), no por tokens.
+  function fijarRespuesta(turno, texto, terminado) {
     turno.respuestaTexto = texto || "";
+    if (terminado) {
+      turno.respuestaTerminada = true;
+    }
     pintarRespuesta(turno);
   }
 
@@ -749,13 +752,23 @@
   // un bloque ya cerrado) queda como estaba. Un bloque que sigue creciendo
   // conserva su elemento y solo cambia su contenido.
   function pintarRespuesta(turno) {
+    const contenedor = turno.respuesta;
+    if (!window.kbCodigo || !window.hljs) {
+      // Sin el parser o sin highlight.js (un 404, una cache vieja) la
+      // respuesta se ve como antes del issue #54, en texto plano, en vez de
+      // quedar en blanco.
+      contenedor.textContent = turno.respuestaTexto;
+      return;
+    }
     const segmentos = kbCodigo.partir(turno.respuestaTexto, turno.respuestaTerminada);
     const anteriores = turno.respuestaSegmentos;
-    const contenedor = turno.respuesta;
     let i = kbCodigo.primerSegmentoDistinto(anteriores, segmentos);
-    if (i < anteriores.length && i < segmentos.length &&
-        anteriores[i].tipo === "codigo" && segmentos[i].tipo === "codigo") {
-      actualizarBloqueCodigo(contenedor.children[i], segmentos[i]);
+    if (i < anteriores.length && i < segmentos.length && anteriores[i].tipo === segmentos[i].tipo) {
+      if (segmentos[i].tipo === "codigo") {
+        actualizarBloqueCodigo(contenedor.children[i], segmentos[i]);
+      } else {
+        contenedor.children[i].textContent = segmentos[i].texto;
+      }
       i++;
     }
     while (contenedor.children.length > i) {

@@ -27,6 +27,13 @@ test("un bloque con lenguaje queda entre dos textos, sin los saltos que rodean l
     [texto("Mira:"), codigo("java", "int a = 1;", true), texto("Listo.")]);
 });
 
+test("las lineas en blanco que rodean un bloque no quedan en el texto, de ningun lado", () => {
+  assert.deepEqual(
+    partir("Mira:\n\n```js\na\n```\n\nListo.", true),
+    [texto("Mira:"), codigo("js", "a", true), texto("Listo.")]);
+  assert.deepEqual(partir("Uno\n\nDos", true), [texto("Uno\n\nDos")]);
+});
+
 test("un bloque sin lenguaje", () => {
   assert.deepEqual(partir("```\nmake up\n```\n", false), [codigo("", "make up", true)]);
 });

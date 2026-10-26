@@ -30,8 +30,18 @@
     const segmentos = [];
     let textoPendiente = [];
     let bloque = null;
+    let despuesDeBloque = false;
 
-    const soltarTexto = () => {
+    // Las lineas en blanco pegadas a un bloque se quitan de los dos lados: el
+    // margen del bloque ya separa, y en pre-wrap una sobrante antes no se ve
+    // pero una despues si (el texto quedaba mas lejos abajo que arriba).
+    const soltarTexto = (antesDeBloque) => {
+      while (despuesDeBloque && textoPendiente.length && textoPendiente[0] === "") {
+        textoPendiente.shift();
+      }
+      while (antesDeBloque && textoPendiente.length && textoPendiente[textoPendiente.length - 1] === "") {
+        textoPendiente.pop();
+      }
       const unido = textoPendiente.join("\n");
       if (unido !== "") {
         segmentos.push({ tipo: "texto", texto: unido });
@@ -48,6 +58,7 @@
         if (cierre && cierre[1].length >= bloque.cerca && completa) {
           segmentos.push({ tipo: "codigo", lenguaje: bloque.lenguaje, codigo: bloque.lineas.join("\n"), cerrado: true });
           bloque = null;
+          despuesDeBloque = true;
         } else if (!completa && CERCA_A_MEDIAS.test(linea)) {
           // Puede ser el cierre a medio llegar: se espera al siguiente token.
         } else {
@@ -57,7 +68,7 @@
       }
       const apertura = APERTURA.exec(linea);
       if (apertura) {
-        soltarTexto();
+        soltarTexto(true);
         const palabra = (apertura[3].trim().split(/\s+/)[0] || "").toLowerCase();
         bloque = {
           sangria: apertura[1].length,
@@ -76,7 +87,7 @@
     if (bloque) {
       segmentos.push({ tipo: "codigo", lenguaje: bloque.lenguaje, codigo: bloque.lineas.join("\n"), cerrado: !!terminado });
     }
-    soltarTexto();
+    soltarTexto(false);
     return segmentos;
   }
 
