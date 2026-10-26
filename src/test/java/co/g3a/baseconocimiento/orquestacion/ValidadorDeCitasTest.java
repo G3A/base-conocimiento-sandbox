@@ -74,6 +74,16 @@ class ValidadorDeCitasTest {
   }
 
   @Test
+  @DisplayName("Un bloque de codigo sin cerrar o con ~~~ tampoco aporta citas")
+  void ignoraBloquesSinCerrarYConVirgulillas() {
+    String truncado = "Ejemplo [1]:\n```java\nvar ids = [10, 20];";
+    String conVirgulillas = "Ejemplo [2]:\n~~~json\n\"ids\": [30]\n~~~\nFin.";
+
+    assertThat(ValidadorDeCitas.validar(truncado, 2).citados()).containsExactly(1L);
+    assertThat(ValidadorDeCitas.validar(conVirgulillas, 2).citados()).containsExactly(2L);
+  }
+
+  @Test
   @DisplayName("[0] y [-1] son citas fuera de rango")
   void ceroYNegativosQuedanFueraDeRango() {
     Resultado resultado = ValidadorDeCitas.validar("A [0]. B [-1]. C [1].", 2);

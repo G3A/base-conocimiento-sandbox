@@ -25,8 +25,9 @@ import java.util.regex.Pattern;
  *       estructurado arma {@code [%d]} con un entero que decide el modelo).
  *   <li>No cuenta una cadena de corchetes pegada a un identificador ({@code array[3]}, {@code
  *       m[1][2]}, {@code iniciado[9]}), lo que no es solo número ({@code [1-3]}, {@code [^9]},
- *       {@code [9abc]}), ni nada dentro de código Markdown: el corpus trae Java y JSON, y {@code
- *       [10, 20]} ahí es un literal, no una cita.
+ *       {@code [9abc]}), ni nada dentro de código Markdown (bloques con tres acentos graves o tres
+ *       virgulillas, aunque queden sin cerrar, y código en línea): el corpus trae Java y JSON, y
+ *       {@code [10, 20]} ahí es un literal, no una cita.
  *   <li>Hasta 18 dígitos por índice, para que quepa en un {@code long}.
  * </ul>
  */
@@ -36,7 +37,10 @@ final class ValidadorDeCitas {
   static final String MENSAJE_CITA_FUERA_DE_RANGO =
       "La cita [%d] no corresponde a ninguno de los fragmentos consultados.";
 
-  private static final Pattern CODIGO_EN_BLOQUE = Pattern.compile("```.*?```", Pattern.DOTALL);
+  // Un bloque sin cerrar (la sintesis cortada por max-tokens a mitad de codigo)
+  // llega hasta el final del texto.
+  private static final Pattern CODIGO_EN_BLOQUE =
+      Pattern.compile("```.*?(?:```|\\z)|~~~.*?(?:~~~|\\z)", Pattern.DOTALL);
   private static final Pattern CODIGO_EN_LINEA = Pattern.compile("`[^`\\n]*`");
   private static final Pattern INDEXACION =
       Pattern.compile("[\\p{L}\\p{N}_](?:\\[[^\\[\\]\\n]*\\])+");
