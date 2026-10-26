@@ -1,0 +1,150 @@
+{
+  "tarea": "52",
+  "fases": [
+    3
+  ],
+  "inicio": "2026-10-26T19:19:07.344Z",
+  "fin": "2026-10-26T20:12:12.561Z",
+  "ramas": [
+    "feat/52-validador-de-citas"
+  ],
+  "actas": [
+    {
+      "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+      "cruda": "e674d7c3-e1eb-4d00-a60e-44f9e2855734.acta.cruda.jsonl",
+      "sha256": "0c857c47bd40c53dc1318ddca16989d1cb3ae47adb288961251046d791e95f8c",
+      "curada": "e674d7c3-e1eb-4d00-a60e-44f9e2855734.acta.curada.jsonl",
+      "ramas": [
+        "feat/52-validador-de-citas"
+      ],
+      "fase": 3,
+      "inicio": "2026-10-26T19:19:07.344Z",
+      "fin": "2026-10-26T20:12:12.561Z"
+    }
+  ],
+  "archivos": {
+    "docs/architecture.md": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a65",
+        "agente": "orquestador"
+      }
+    ],
+    "docs/plans/plan-base-conocimiento.md": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a66",
+        "agente": "orquestador"
+      }
+    ],
+    "docs/plans/plan-issue-52-validador-de-citas.md": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a32",
+        "agente": "orquestador"
+      }
+    ],
+    "src/main/java/co/g3a/baseconocimiento/compartido/Dominio.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a62",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a67",
+        "agente": "orquestador"
+      }
+    ],
+    "src/main/java/co/g3a/baseconocimiento/orquestacion/Orquestador.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a57",
+        "agente": "orquestador"
+      }
+    ],
+    "src/main/java/co/g3a/baseconocimiento/orquestacion/ValidadorDeCitas.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a53",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a54",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a55",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a67",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a76",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a77",
+        "agente": "orquestador"
+      }
+    ],
+    "src/main/java/co/g3a/baseconocimiento/teams/TarjetaAdaptativa.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a64",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a67",
+        "agente": "orquestador"
+      }
+    ],
+    "src/test/java/co/g3a/baseconocimiento/orquestacion/OrquestadorTest.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a38",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a39",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a58",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a59",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a61",
+        "agente": "orquestador"
+      }
+    ],
+    "src/test/java/co/g3a/baseconocimiento/orquestacion/ValidadorDeCitasTest.java": [
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a56",
+        "agente": "orquestador"
+      },
+      {
+        "sesion": "e674d7c3-e1eb-4d00-a60e-44f9e2855734",
+        "accion": "a78",
+        "agente": "orquestador"
+      }
+    ]
+  }
+}
