@@ -21,7 +21,7 @@ Sigue la convención [agents.md](https://agents.md): solo lo no obvio; lee los e
 cp .env.example .env && make up      # levanta db, ollama, docling-serve, api
 make pull-models                     # una sola vez: embeddings + reranker
 make hooks                           # una sola vez: instala los git hooks (Lefthook)
-make check                           # lint + build + test: la señal local de "el repo está bien"
+make check                           # lint + build + test + test-js (pide node): la señal local de "el repo está bien"
 make gpu-check                       # qué tarjeta ve y cómo la reparte (y cómo forzarlo)
 ```
 
