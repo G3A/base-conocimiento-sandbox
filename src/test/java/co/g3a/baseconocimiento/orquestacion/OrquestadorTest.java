@@ -2,6 +2,7 @@ package co.g3a.baseconocimiento.orquestacion;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -116,6 +117,82 @@ class OrquestadorTest {
     assertThat(resultado.queryLogId()).isEqualTo(42L);
     verify(queryLog).registrar(any(), any(), any(), any(), any(), any(), any(), anyLong());
     verify(verificadorGrounding, never()).verificar(any(), any());
+  }
+
+  @Test
+  @DisplayName(
+      "Issue #52: una cita [n] fuera de 1..k queda como advertencia, sin tocar el texto de la respuesta")
+  void marcaCitaFueraDeRangoComoAdvertencia() {
+    // rerank=9.0 en los dos: SUFICIENTE, el sintetizador falso corre de verdad
+    // con k=2 fragmentos en el contexto.
+    Fragmento uno =
+        new Fragmento(
+            1L,
+            100L,
+            "file:///doc1",
+            "Doc 1",
+            "Fragmento uno.",
+            "doc_section",
+            0,
+            Instant.EPOCH,
+            Map.of(),
+            0.05,
+            9.0);
+    Fragmento dos =
+        new Fragmento(
+            2L,
+            101L,
+            "file:///doc2",
+            "Doc 2",
+            "Fragmento dos.",
+            "doc_section",
+            0,
+            Instant.EPOCH,
+            Map.of(),
+            0.05,
+            9.0);
+
+    var catalogo = new CatalogoHerramientas(List.of(herramientaFalsa("fake_tool", uno, dos)));
+    var executor = new Executor(catalogo);
+
+    Planificador planificador =
+        (pregunta, herramientas) -> new PlanDeHerramientas(List.of("fake_tool"), "porque si");
+    Sintetizador sintetizador = (pregunta, contexto, idioma) -> Flux.just("X [9]");
+
+    ContextoRepositorio contextoRepo = mock(ContextoRepositorio.class);
+    when(contextoRepo.vecinos(anyLong(), anyInt())).thenReturn(List.of());
+
+    HerramientasRepositorio herramientasRepo = mock(HerramientasRepositorio.class);
+    when(herramientasRepo.contarChunks(anyString())).thenReturn(100L);
+
+    QueryLogRepositorio queryLog = mock(QueryLogRepositorio.class);
+    when(queryLog.registrar(any(), any(), any(), any(), any(), any(), any(), anyLong()))
+        .thenReturn(1L);
+
+    var orquestador =
+        new Orquestador(
+            planificador,
+            REFORMULADOR_SIN_CAMBIOS,
+            catalogo,
+            executor,
+            contextoRepo,
+            herramientasRepo,
+            sintetizador,
+            mock(VerificadorGrounding.class),
+            queryLog,
+            10,
+            true,
+            UMBRAL_POR_DEFECTO,
+            10,
+            mock(StreamsEnCursoRepositorio.class));
+
+    Orquestador.EjecucionPipeline resultado =
+        orquestador.ejecutar(new Pregunta("¿Que dicen?"), PROYECTO, Filtros.NINGUNO);
+
+    assertThat(resultado.respuesta().texto()).isEqualTo("X [9]");
+    assertThat(resultado.respuesta().citas()).hasSize(2);
+    assertThat(resultado.respuesta().advertencias())
+        .containsExactly("La cita [9] no corresponde a ninguno de los fragmentos consultados.");
   }
 
   @Test
