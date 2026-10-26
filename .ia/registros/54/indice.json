@@ -4,7 +4,7 @@
     3
   ],
   "inicio": "2026-10-26T21:34:00.756Z",
-  "fin": "2026-10-26T22:36:05.600Z",
+  "fin": "2026-10-26T22:49:07.640Z",
   "ramas": [
     "feat/54-codigo-en-el-chat"
   ],
@@ -12,14 +12,14 @@
     {
       "sesion": "54696a17-103e-4574-ae83-ca9d8ec05d2b",
       "cruda": "54696a17-103e-4574-ae83-ca9d8ec05d2b.acta.cruda.jsonl",
-      "sha256": "a941e24aee57199bf874c8c09bb6a256258bd9b050d72597d0ce6eb4b60ce9db",
-      "curada": null,
+      "sha256": "6428d6510345e7c0796b31b309c76cf37e0b3d605e93d610f014343c61e7407c",
+      "curada": "54696a17-103e-4574-ae83-ca9d8ec05d2b.acta.curada.jsonl",
       "ramas": [
         "feat/54-codigo-en-el-chat"
       ],
       "fase": 3,
       "inicio": "2026-10-26T21:34:00.756Z",
-      "fin": "2026-10-26T22:36:05.600Z"
+      "fin": "2026-10-26T22:49:07.640Z"
     }
   ],
   "archivos": {
