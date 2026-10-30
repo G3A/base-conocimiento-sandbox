@@ -13,6 +13,7 @@ import co.g3a.baseconocimiento.compartido.Dominio.Cita;
 import co.g3a.baseconocimiento.compartido.Dominio.ProyectoId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -272,7 +273,33 @@ class AccionesController {
         Flux.concat(cuerpo, fin)
             .onErrorResume(
                 error -> Flux.just(json("error-servidor", MensajesDeError.mensajeDe(error))));
-    return ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM).body(conCierre);
+    return ResponseEntity.ok()
+        .contentType(MediaType.TEXT_EVENT_STREAM)
+        .body(conLatido(conCierre, LATIDO));
+  }
+
+  /**
+   * Cada cuanto se manda un latido. Una pasada de lectura de un documento largo tarda minutos (~3
+   * con Granite en la T600, medido con jls25.pdf) y en ese tiempo el stream no tenia nada que
+   * mandar: el fetch de Node corto la conexion a los 300 s, y un proxy con timeout de inactividad
+   * haria lo mismo. 15 s queda lejos de cualquier timeout habitual.
+   */
+  static final Duration LATIDO = Duration.ofSeconds(15);
+
+  /**
+   * Mezcla un comentario SSE ({@code :latido}) cada {@code cada} con los eventos, hasta el evento
+   * que cierra el stream ({@code fin}, {@code error-servidor}). El EventSource del navegador ignora
+   * los comentarios: la pagina no cambia.
+   */
+  static Flux<ServerSentEvent<Object>> conLatido(
+      Flux<ServerSentEvent<Object>> eventos, Duration cada) {
+    Flux<ServerSentEvent<Object>> latidos =
+        Flux.interval(cada, cada).map(n -> ServerSentEvent.builder().comment("latido").build());
+    return Flux.merge(eventos, latidos).takeUntil(AccionesController::cierra);
+  }
+
+  private static boolean cierra(ServerSentEvent<Object> evento) {
+    return "fin".equals(evento.event()) || "error-servidor".equals(evento.event());
   }
 
   private static ResponseEntity<Flux<ServerSentEvent<Object>>> rechazo(String motivo) {

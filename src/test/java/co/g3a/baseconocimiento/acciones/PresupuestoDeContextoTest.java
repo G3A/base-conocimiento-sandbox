@@ -189,6 +189,25 @@ class PresupuestoDeContextoTest {
         .isEqualTo("Resumen de documentos seleccionados");
   }
 
+  @Test
+  @DisplayName(
+      "Una pasada no pasa del contexto real: inglés técnico (2,7 car./token) da tramos menores")
+  void elTramoSaleDelContextoYDeLosCaracteresPorToken() {
+    // 4096 tokens de contexto, menos 600 de salida y 350 del prompt, con 10 % de margen.
+    int ingles = PresupuestoDeContexto.caracteresPorPasada(4096, 2.7, 10_000);
+    assertThat(ingles).isEqualTo((int) ((4096 - 600 - 350) * 2.7 * 0.9));
+    assertThat(ingles).isLessThan(10_000);
+
+    // En prosa en español (3,6 car./token) el contexto da para más que el tope: manda el tope.
+    assertThat(PresupuestoDeContexto.caracteresPorPasada(4096, 3.6, 10_000)).isEqualTo(10_000);
+  }
+
+  @Test
+  @DisplayName("Un contexto ínfimo no deja la pasada en cero ni negativa")
+  void contextoInfimoDejaUnMinimo() {
+    assertThat(PresupuestoDeContexto.caracteresPorPasada(500, 2.7, 10_000)).isPositive();
+  }
+
   private static Seccion seccion(long id, long documentoId, String titulo, int ord, String texto) {
     return new Seccion(id, documentoId, "file:///" + titulo, titulo, ord, texto, "doc_section");
   }

@@ -136,6 +136,18 @@ kb:
     # modelo del resto del pipeline desde ADR-0009) no tiene modo thinking,
     # asi que no hace falta apagarselo.
     thinking-habilitado: ${KB_LLM_THINKING_HABILITADO:false}
+    # Tokens de contexto del modelo (num_ctx de Ollama, entrada y salida juntas).
+    # De aca sale cuanto texto entra en una pasada de lectura de un documento
+    # largo sin desbordar (issue #57): si subes num_ctx, subelo tambien.
+    contexto-tokens: ${KB_LLM_CONTEXTO_TOKENS:4096}
+    # Lo que rinde el modelo hasta que lo mide (issue #57): con cada llamada de
+    # lectura se aprende de su `usage` real. Defaults medidos con Granite 4.1 3B
+    # Q3_K_M en la T600: ~18 tokens/s de entrada, ~7 de salida, ~3 caracteres
+    # por token (2,7 en ingles tecnico con codigo, 3,6 en prosa en espanol).
+    rendimiento:
+      caracteres-por-token: ${KB_LLM_CARACTERES_POR_TOKEN:3.0}
+      tokens-entrada-por-segundo: ${KB_LLM_TOKENS_ENTRADA_POR_SEGUNDO:18}
+      tokens-salida-por-segundo: ${KB_LLM_TOKENS_SALIDA_POR_SEGUNDO:7}
 
     sintesis-estructurada:
       # false (default): SintetizadorOpenAi, prosa libre con [n] incrustado --

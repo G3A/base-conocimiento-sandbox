@@ -46,6 +46,28 @@ final class PresupuestoDeContexto {
    */
   static final int LARGO_NOTAS = 1200;
 
+  /** Tokens que se reservan para la salida de una pasada: el {@code maxTokens} de la lectura. */
+  static final int RESERVA_SALIDA_PASADA = 600;
+
+  /** Tokens del prompt de sistema de una pasada de lectura, con margen. */
+  static final int RESERVA_PROMPT_PASADA = 350;
+
+  /** Nunca menos que esto por pasada: con menos, los niveles de notas no terminarian. */
+  static final int MINIMO_POR_PASADA = 2 * LARGO_NOTAS + 4;
+
+  /**
+   * Cuanto texto entra en una pasada sin desbordar el contexto del modelo (issue #57). El tope
+   * configurado suponia ~3,6 caracteres por token, medido con prosa en español; con ingles tecnico
+   * con codigo son ~2,7 y un tramo de 10000 caracteres llegaba a 3700 tokens, al borde de 4096
+   * antes de sumar la salida. Por eso: lo que queda del contexto, en caracteres segun lo medido,
+   * con 10 % de margen, y nunca mas que el tope.
+   */
+  static int caracteresPorPasada(int contextoTokens, double caracteresPorToken, int tope) {
+    int disponibles = contextoTokens - RESERVA_SALIDA_PASADA - RESERVA_PROMPT_PASADA;
+    int caben = (int) (Math.max(0, disponibles) * caracteresPorToken * 0.9);
+    return Math.min(tope, Math.max(MINIMO_POR_PASADA, caben));
+  }
+
   private final int maxCaracteres;
   private final int maxCaracteresLectura;
 

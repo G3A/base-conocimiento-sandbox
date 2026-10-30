@@ -15,6 +15,7 @@ import co.g3a.baseconocimiento.llm.Redactor.Nivel;
 import co.g3a.baseconocimiento.llm.Redactor.NivelBloom;
 import co.g3a.baseconocimiento.llm.Redactor.Pregunta;
 import co.g3a.baseconocimiento.llm.Redactor.Preguntas;
+import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,24 +57,39 @@ class AccionesSobreDocumentos {
   private final SeccionesRepositorio repo;
   private final Redactor redactor;
   private final CupoDeAcciones cupo;
-  private final PresupuestoDeContexto presupuesto;
+  private final AccionesPropiedades propiedades;
+  private final RendimientoDelModelo rendimiento;
 
   AccionesSobreDocumentos(
       SeccionesRepositorio repo,
       Redactor redactor,
       CupoDeAcciones cupo,
-      AccionesPropiedades propiedades) {
+      AccionesPropiedades propiedades,
+      RendimientoDelModelo rendimiento) {
     this.repo = repo;
     this.redactor = redactor;
     this.cupo = cupo;
-    this.presupuesto =
-        new PresupuestoDeContexto(
-            propiedades.maxCaracteresContexto(), propiedades.maxCaracteresLectura());
+    this.propiedades = propiedades;
+    this.rendimiento = rendimiento;
+  }
+
+  /**
+   * Se arma en cada accion y no una vez al arrancar: el tamano de la pasada depende de los
+   * caracteres por token que el modelo viene midiendo (issue #57).
+   */
+  private PresupuestoDeContexto presupuesto() {
+    return new PresupuestoDeContexto(
+        propiedades.maxCaracteresContexto(),
+        PresupuestoDeContexto.caracteresPorPasada(
+            rendimiento.contextoTokens(),
+            rendimiento.caracteresPorToken(),
+            propiedades.maxCaracteresLectura()));
   }
 
   ResultadoDeAccion ejecutar(Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma) {
     List<Long> unicos = new ArrayList<>(new LinkedHashSet<>(documentos));
     List<Seccion> secciones = repo.seccionesDe(unicos, proyecto.valor());
+    PresupuestoDeContexto presupuesto = presupuesto();
     List<DocumentoPlanificado> plan = presupuesto.planificar(unicos, secciones);
     boolean hayIndexados = plan.stream().anyMatch(DocumentoPlanificado::indexado);
     String etiqueta = PresupuestoDeContexto.etiqueta(verboDe(tipo), plan);
@@ -84,7 +100,7 @@ class AccionesSobreDocumentos {
             : Flux.defer(
                 () ->
                     cupo.intentarTomar()
-                        ? conCupo(tipo, plan, idioma)
+                        ? conCupo(tipo, plan, presupuesto.notasPorGrupo(), idioma)
                         : Flux.just(mensajeFijo(tipo, MENSAJE_SERVIDOR_OCUPADO)));
     return new ResultadoDeAccion(
         etiqueta,
@@ -103,13 +119,14 @@ class AccionesSobreDocumentos {
   }
 
   /** Solo con el cupo ya tomado: lo devuelve pase lo que pase. */
-  private Flux<EventoAccion> conCupo(Tipo tipo, List<DocumentoPlanificado> plan, String idioma) {
+  private Flux<EventoAccion> conCupo(
+      Tipo tipo, List<DocumentoPlanificado> plan, int porGrupo, String idioma) {
     Map<Long, String> notas = new ConcurrentHashMap<>();
     // En su propio hilo: el bucle bloquea en cada llamada al LLM, y si corriera en el hilo
     // que escribe el SSE, este no vaciaria nada hasta terminar todas las pasadas y el
     // progreso llegaria de golpe al final (visto en vivo con la primera demo de #60).
     Flux<EventoAccion> lecturas =
-        Flux.<EventoAccion>create(sink -> leer(plan, idioma, notas, sink))
+        Flux.<EventoAccion>create(sink -> leer(plan, porGrupo, idioma, notas, sink))
             .subscribeOn(Schedulers.boundedElastic());
     Flux<EventoAccion> accion =
         Flux.defer(() -> accion(tipo, PresupuestoDeContexto.contexto(plan, notas), idioma));
@@ -125,11 +142,11 @@ class AccionesSobreDocumentos {
    */
   private void leer(
       List<DocumentoPlanificado> plan,
+      int porGrupo,
       String idioma,
       Map<Long, String> notas,
       FluxSink<EventoAccion> sink) {
     try {
-      int porGrupo = presupuesto.notasPorGrupo();
       for (DocumentoPlanificado d : plan) {
         if (!d.porPasadas()) {
           continue;

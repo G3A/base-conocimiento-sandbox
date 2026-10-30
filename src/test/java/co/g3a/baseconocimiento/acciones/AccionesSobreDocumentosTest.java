@@ -27,6 +27,7 @@ import co.g3a.baseconocimiento.acciones.SeccionesRepositorio.Seccion;
 import co.g3a.baseconocimiento.compartido.Dominio.Cita;
 import co.g3a.baseconocimiento.compartido.Dominio.ProyectoId;
 import co.g3a.baseconocimiento.llm.Redactor;
+import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,29 @@ class AccionesSobreDocumentosTest {
   private static final AccionesPropiedades PROPIEDADES =
       new AccionesPropiedades(10, 7000, 8000, 1, 10000);
 
+  /**
+   * Un contexto enorme: el tamano de la pasada lo fija el tope de cada prueba, como antes de que se
+   * calculara con el contexto del modelo (issue #57). Eso lo prueba {@code
+   * PresupuestoDeContextoTest}.
+   */
+  private static final RendimientoDelModelo RENDIMIENTO =
+      new RendimientoDelModelo() {
+        @Override
+        public double caracteresPorToken() {
+          return 3.0;
+        }
+
+        @Override
+        public double segundosEstimados(int caracteresEntrada, int tokensSalida) {
+          return 1;
+        }
+
+        @Override
+        public int contextoTokens() {
+          return 1_000_000;
+        }
+      };
+
   @Test
   @DisplayName(
       "Resumir: carga, planifica, redacta en el idioma pedido y libera el cupo al terminar")
@@ -54,7 +78,7 @@ class AccionesSobreDocumentosTest {
     Redactor redactor = mock(Redactor.class);
     when(redactor.resumir(anyString(), eq("en"))).thenReturn(Flux.just("Resumen ", "[1] [2]."));
     var cupo = new CupoDeAcciones(PROPIEDADES);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado =
         acciones.ejecutar(Tipo.RESUMIR, List.of(10L, 20L, 10L), PROYECTO, "en");
@@ -87,7 +111,8 @@ class AccionesSobreDocumentosTest {
     Redactor redactor = mock(Redactor.class);
     when(redactor.sintetizar(anyString(), eq("es"))).thenReturn(Flux.just("Sintesis."));
     var acciones =
-        new AccionesSobreDocumentos(repo, redactor, new CupoDeAcciones(PROPIEDADES), PROPIEDADES);
+        new AccionesSobreDocumentos(
+            repo, redactor, new CupoDeAcciones(PROPIEDADES), PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.SINTETIZAR, List.of(10L), PROYECTO, "es");
 
@@ -111,7 +136,7 @@ class AccionesSobreDocumentosTest {
     when(redactor.condensar(anyString(), eq("es"), anyInt())).thenReturn("n");
     when(redactor.resumir(anyString(), eq("es"))).thenReturn(Flux.just("Resumen."));
     var cupo = new CupoDeAcciones(propiedades);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
 
@@ -152,7 +177,8 @@ class AccionesSobreDocumentosTest {
     when(redactor.condensar(anyString(), eq("es"), anyInt())).thenReturn("nnnnnn");
     when(redactor.idear(anyString(), eq("es"))).thenReturn(new Redactor.Ideas(List.of()));
     var acciones =
-        new AccionesSobreDocumentos(repo, redactor, new CupoDeAcciones(propiedades), propiedades);
+        new AccionesSobreDocumentos(
+            repo, redactor, new CupoDeAcciones(propiedades), propiedades, RENDIMIENTO);
 
     List<EventoAccion> eventos =
         acciones.ejecutar(Tipo.IDEAS, List.of(10L), PROYECTO, "es").eventos().collectList().block();
@@ -177,7 +203,7 @@ class AccionesSobreDocumentosTest {
     Redactor redactor = mock(Redactor.class);
     when(redactor.condensar(anyString(), eq("es"), anyInt())).thenReturn("n");
     var cupo = new CupoDeAcciones(propiedades);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades, RENDIMIENTO);
 
     acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es").eventos().take(2).blockLast();
 
@@ -198,7 +224,7 @@ class AccionesSobreDocumentosTest {
     when(repo.seccionesDe(any(), any())).thenReturn(List.of());
     Redactor redactor = mock(Redactor.class);
     var cupo = new CupoDeAcciones(new AccionesPropiedades(10, 7000, 8000, 0, 10000));
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(999L), PROYECTO, "es");
 
@@ -217,7 +243,7 @@ class AccionesSobreDocumentosTest {
     when(repo.seccionesDe(any(), any())).thenReturn(List.of(seccion(1, 10, "A", "texto a")));
     Redactor redactor = mock(Redactor.class);
     var cupo = new CupoDeAcciones(new AccionesPropiedades(10, 7000, 8000, 0, 10000));
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
 
@@ -238,7 +264,7 @@ class AccionesSobreDocumentosTest {
     when(redactor.resumir(anyString(), anyString())).thenReturn(Flux.just("ok"));
     when(redactor.preguntar(anyString(), anyString(), any(), any())).thenReturn(List.of());
     var cupo = new CupoDeAcciones(PROPIEDADES);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     // Un cliente que corta antes de leer el cuerpo: el resultado se arma y nadie lo lee.
     acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
@@ -269,7 +295,7 @@ class AccionesSobreDocumentosTest {
     when(redactor.resumir(anyString(), anyString()))
         .thenReturn(Flux.error(new IllegalStateException("Ollama no responde")));
     var cupo = new CupoDeAcciones(PROPIEDADES);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
 
@@ -287,7 +313,7 @@ class AccionesSobreDocumentosTest {
     when(redactor.resumir(anyString(), anyString()))
         .thenThrow(new IllegalStateException("bean mal configurado"));
     var cupo = new CupoDeAcciones(PROPIEDADES);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
 
@@ -316,7 +342,7 @@ class AccionesSobreDocumentosTest {
     var ideas = new Redactor.Ideas(List.of(new Redactor.Idea("Titulo", "porque", 1)));
     when(redactor.idear(anyString(), eq("es"))).thenReturn(ideas);
     var cupo = new CupoDeAcciones(PROPIEDADES);
-    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion conPreguntas =
         acciones.ejecutar(Tipo.PREGUNTAS, List.of(10L), PROYECTO, "pt");
@@ -364,7 +390,8 @@ class AccionesSobreDocumentosTest {
     when(repo.seccionesDe(any(), any())).thenReturn(List.of());
     Redactor redactor = mock(Redactor.class);
     var acciones =
-        new AccionesSobreDocumentos(repo, redactor, new CupoDeAcciones(PROPIEDADES), PROPIEDADES);
+        new AccionesSobreDocumentos(
+            repo, redactor, new CupoDeAcciones(PROPIEDADES), PROPIEDADES, RENDIMIENTO);
 
     ResultadoDeAccion sinDocumentos =
         acciones.ejecutar(Tipo.PREGUNTAS, List.of(999L), PROYECTO, "es");
@@ -378,7 +405,8 @@ class AccionesSobreDocumentosTest {
             repo,
             redactor,
             new CupoDeAcciones(new AccionesPropiedades(10, 7000, 8000, 0, 10000)),
-            PROPIEDADES);
+            PROPIEDADES,
+            RENDIMIENTO);
     ResultadoDeAccion ocupado = sinCupo.ejecutar(Tipo.IDEAS, List.of(10L), PROYECTO, "es");
     assertThat(ocupado.eventos().collectList().block())
         .containsExactly(
