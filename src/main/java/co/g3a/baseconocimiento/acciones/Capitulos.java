@@ -26,6 +26,14 @@ final class Capitulos {
   /** Niveles de ruta que se prueban antes de rendirse y agrupar por orden. */
   private static final int NIVELES = 4;
 
+  /** Tope del extracto de un capitulo: lo que entra al LLM por cada uno. */
+  static final int LARGO_EXTRACTO = 6000;
+
+  /** El largo del extracto que cabe en una pasada: nunca mas que {@link #LARGO_EXTRACTO}. */
+  static int largoExtracto(int caracteresPorPasada) {
+    return Math.min(LARGO_EXTRACTO, caracteresPorPasada);
+  }
+
   /** Por debajo de esto un extracto por seccion ya no dice nada: se toman menos secciones. */
   static final int MINIMO_POR_SECCION = 200;
 

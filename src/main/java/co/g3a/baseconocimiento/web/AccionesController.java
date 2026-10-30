@@ -6,6 +6,7 @@ import co.g3a.baseconocimiento.acciones.Acciones.Estimado;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoTraduccion;
 import co.g3a.baseconocimiento.acciones.Acciones.Limites;
+import co.g3a.baseconocimiento.acciones.Acciones.Modo;
 import co.g3a.baseconocimiento.acciones.Acciones.ResultadoDeAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.TextoTraducido;
 import co.g3a.baseconocimiento.acciones.Acciones.Tipo;
@@ -117,28 +118,33 @@ class AccionesController {
    *     (con {@code KB_API_TOKEN} configurado, 401 antes: el filtro solo exceptua estas cuatro
    *     rutas exactas)
    * @param idioma codigo ISO 639-1 del resultado; ausente = español
+   * @param modo {@code completo} (por defecto) o {@code capitulos}: un {@code capitulo} por cada
+   *     capitulo leido en vez de las {@code lectura} (issue #57)
    */
   @GetMapping(value = "/api/acciones/{tipo}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   ResponseEntity<Flux<ServerSentEvent<Object>>> accion(
       @PathVariable String tipo,
       @RequestParam(required = false) String documentos,
       @RequestParam(required = false) String projectId,
-      @RequestParam(required = false) String idioma) {
+      @RequestParam(required = false) String idioma,
+      @RequestParam(required = false) String modo) {
     Tipo tipoAccion = tipoDe(tipo);
     if (tipoAccion == null) {
       return ResponseEntity.notFound().build();
     }
     List<Long> ids;
     String codigo;
+    Modo modoLectura;
     try {
       ids = idsValidados(documentos);
       codigo = idiomaValidado(idioma == null || idioma.isBlank() ? "es" : idioma);
+      modoLectura = modoDe(modo);
     } catch (IllegalArgumentException invalida) {
       return rechazo(invalida.getMessage());
     }
     ProyectoId proyecto = ParametrosWeb.proyectoDe(projectId);
 
-    ResultadoDeAccion resultado = acciones.ejecutar(tipoAccion, ids, proyecto, codigo);
+    ResultadoDeAccion resultado = acciones.ejecutar(tipoAccion, ids, proyecto, codigo, modoLectura);
     return stream(
         Flux.concat(
             cabecera(resultado.etiqueta(), resultado.cobertura(), resultado.citas()),
@@ -148,6 +154,7 @@ class AccionesController {
   private static ServerSentEvent<Object> eventoDe(EventoAccion evento) {
     return switch (evento) {
       case EventoAccion.Lectura e -> json("lectura", e);
+      case EventoAccion.CapituloLeido e -> json("capitulo", e);
       case EventoAccion.Token e -> json("token", e.fragmento());
       case EventoAccion.Resultado e -> json("resultado", e.valor());
     };
@@ -231,6 +238,15 @@ class AccionesController {
       case "preguntas" -> Tipo.PREGUNTAS;
       case "ideas" -> Tipo.IDEAS;
       default -> null;
+    };
+  }
+
+  /** Ausente = completo; el modo rapido llega en la fase siguiente del issue #57. */
+  private static Modo modoDe(String modo) {
+    return switch (modo == null ? "" : modo.strip().toLowerCase(Locale.ROOT)) {
+      case "", "completo" -> Modo.COMPLETO;
+      case "capitulos" -> Modo.POR_CAPITULOS;
+      default -> throw new IllegalArgumentException("modo debe ser completo o capitulos");
     };
   }
 

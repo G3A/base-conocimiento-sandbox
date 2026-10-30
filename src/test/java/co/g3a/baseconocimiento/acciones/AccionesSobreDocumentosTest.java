@@ -2,10 +2,12 @@ package co.g3a.baseconocimiento.acciones;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
@@ -17,9 +19,11 @@ import static org.mockito.Mockito.when;
 
 import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion;
+import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.CapituloLeido;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Lectura;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Resultado;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Token;
+import co.g3a.baseconocimiento.acciones.Acciones.Modo;
 import co.g3a.baseconocimiento.acciones.Acciones.ResultadoDeAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.SinResultado;
 import co.g3a.baseconocimiento.acciones.Acciones.Tipo;
@@ -28,7 +32,10 @@ import co.g3a.baseconocimiento.compartido.Dominio.Cita;
 import co.g3a.baseconocimiento.compartido.Dominio.ProyectoId;
 import co.g3a.baseconocimiento.llm.Redactor;
 import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -432,6 +439,54 @@ class AccionesSobreDocumentosTest {
         seccion(3, 10, "L", "b".repeat(30)),
         seccion(4, 10, "L", "b".repeat(30)),
         seccion(5, 10, "L", "b".repeat(30)));
+  }
+
+  @Test
+  @DisplayName(
+      "Por capitulos: una llamada por capitulo con su extracto, un CapituloLeido por cada uno, y el"
+          + " contexto final avisa que son extractos")
+  void documentoLargoPorCapitulos() {
+    var propiedades = new AccionesPropiedades(10, 100, 8000, 1, 50);
+    List<Seccion> secciones = new ArrayList<>();
+    Map<Long, List<String>> rutas = new HashMap<>();
+    for (int c = 1; c <= 5; c++) {
+      for (int s = 1; s <= 2; s++) {
+        long id = secciones.size() + 1;
+        secciones.add(new Seccion(id, 10L, "file:///L", "L", (int) id, "b".repeat(30), "doc"));
+        rutas.put(id, List.of("Cap " + c, c + "." + s));
+      }
+    }
+    SeccionesRepositorio repo = mock(SeccionesRepositorio.class);
+    when(repo.seccionesDe(any(), any())).thenReturn(secciones);
+    when(repo.rutasDe(List.of(10L), "default")).thenReturn(rutas);
+    Redactor redactor = mock(Redactor.class);
+    when(redactor.condensar(anyString(), eq("es"), anyInt())).thenReturn("nota");
+    when(redactor.resumir(anyString(), eq("es"))).thenReturn(Flux.just("Resumen."));
+    var cupo = new CupoDeAcciones(propiedades);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades, RENDIMIENTO);
+
+    ResultadoDeAccion resultado =
+        acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es", Modo.POR_CAPITULOS);
+
+    assertThat(resultado.cobertura())
+        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 10, 5));
+    List<EventoAccion> eventos = resultado.eventos().collectList().block();
+    assertThat(eventos).noneMatch(e -> e instanceof Lectura);
+    assertThat(eventos.stream().filter(e -> e instanceof CapituloLeido).map(e -> (CapituloLeido) e))
+        .extracting(CapituloLeido::actual, CapituloLeido::titulo)
+        .containsExactly(
+            tuple(1, "Cap 1"),
+            tuple(2, "Cap 2"),
+            tuple(3, "Cap 3"),
+            tuple(4, "Cap 4"),
+            tuple(5, "Cap 5"));
+    verify(redactor, times(5)).condensar(anyString(), eq("es"), anyInt());
+    verify(redactor).condensar(startsWith("Capítulo: Cap 3"), eq("es"), anyInt());
+
+    ArgumentCaptor<String> contexto = ArgumentCaptor.forClass(String.class);
+    verify(redactor).resumir(contexto.capture(), eq("es"));
+    assertThat(contexto.getValue()).contains("leido por capitulos").contains("## Cap 1");
+    EsperaDeCupo.vuelveYSeToma(cupo, "el cupo volvio al terminar");
   }
 
   private static Seccion seccion(long id, long documentoId, String titulo, String texto) {

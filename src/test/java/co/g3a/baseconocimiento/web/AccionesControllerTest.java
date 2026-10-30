@@ -116,7 +116,8 @@ class AccionesControllerTest {
   @DisplayName(
       "GET /api/acciones/resumir: etiqueta, cobertura, citas, lecturas, tokens y fin, en ese orden")
   void resumirTransmitePorSse() throws Exception {
-    when(acciones.ejecutar(eq(Tipo.RESUMIR), eq(List.of(1L, 2L)), any(), eq("en")))
+    when(acciones.ejecutar(
+            eq(Tipo.RESUMIR), eq(List.of(1L, 2L)), any(), eq("en"), eq(Modo.COMPLETO)))
         .thenReturn(
             new ResultadoDeAccion(
                 "Resumen de 1 documento: a.md",
@@ -145,7 +146,8 @@ class AccionesControllerTest {
     assertThat(cuerpo.indexOf("event:citas")).isLessThan(cuerpo.indexOf("event:lectura"));
     assertThat(cuerpo.indexOf("event:lectura")).isLessThan(cuerpo.indexOf("event:token"));
     assertThat(cuerpo.indexOf("event:token")).isLessThan(cuerpo.indexOf("event:fin"));
-    verify(acciones).ejecutar(Tipo.RESUMIR, List.of(1L, 2L), new ProyectoId("default"), "en");
+    verify(acciones)
+        .ejecutar(Tipo.RESUMIR, List.of(1L, 2L), new ProyectoId("default"), "en", Modo.COMPLETO);
   }
 
   @Test
@@ -160,7 +162,7 @@ class AccionesControllerTest {
                     "recordar",
                     "preguntas",
                     List.of(Map.of("texto", "¿Qué hace make up?", "tipo", "que", "fuente", 1)))));
-    when(acciones.ejecutar(eq(Tipo.PREGUNTAS), eq(List.of(1L)), any(), eq("es")))
+    when(acciones.ejecutar(eq(Tipo.PREGUNTAS), eq(List.of(1L)), any(), eq("es"), eq(Modo.COMPLETO)))
         .thenReturn(
             new ResultadoDeAccion(
                 "Preguntas sobre 1 documento: a.md",
@@ -178,7 +180,8 @@ class AccionesControllerTest {
     assertThat(cuerpo.indexOf("event:citas")).isLessThan(cuerpo.indexOf("event:resultado"));
     assertThat(cuerpo.indexOf("event:resultado")).isLessThan(cuerpo.indexOf("event:fin"));
     // Sin idioma: español.
-    verify(acciones).ejecutar(Tipo.PREGUNTAS, List.of(1L), ProyectoId.POR_DEFECTO, "es");
+    verify(acciones)
+        .ejecutar(Tipo.PREGUNTAS, List.of(1L), ProyectoId.POR_DEFECTO, "es", Modo.COMPLETO);
   }
 
   @Test
@@ -198,7 +201,7 @@ class AccionesControllerTest {
         .perform(get("/api/acciones/resumir").param("documentos", "1").param("idioma", "en-US"))
         .andExpect(status().isBadRequest());
     mockMvc.perform(get("/api/acciones/resumir")).andExpect(status().isBadRequest());
-    verify(acciones, never()).ejecutar(any(), any(), any(), any());
+    verify(acciones, never()).ejecutar(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -221,6 +224,37 @@ class AccionesControllerTest {
   }
 
   @Test
+  @DisplayName("modo=capitulos llega a la fachada y cada capitulo leido sale como evento capitulo")
+  void modoPorCapitulos() throws Exception {
+    when(acciones.ejecutar(
+            eq(Tipo.RESUMIR), eq(List.of(1L)), any(), eq("es"), eq(Modo.POR_CAPITULOS)))
+        .thenReturn(
+            new ResultadoDeAccion(
+                "Resumen de 1 documento: a.md",
+                List.of(COBERTURA),
+                List.of(CITA),
+                Flux.just(
+                    new EventoAccion.CapituloLeido(1L, 1, 3, "Introduction"),
+                    new EventoAccion.Token("Resumen."))));
+
+    String cuerpo =
+        sse(get("/api/acciones/resumir").param("documentos", "1").param("modo", "capitulos"));
+
+    assertThat(cuerpo)
+        .contains("event:capitulo")
+        .contains("\"actual\":1,\"total\":3,\"titulo\":\"Introduction\"");
+  }
+
+  @Test
+  @DisplayName("Un modo desconocido es 400 antes de abrir el stream")
+  void modoDesconocido() throws Exception {
+    mockMvc
+        .perform(get("/api/acciones/resumir").param("documentos", "1").param("modo", "magico"))
+        .andExpect(status().isBadRequest());
+    verify(acciones, never()).ejecutar(any(), any(), any(), any(), any());
+  }
+
+  @Test
   @DisplayName("Un tipo desconocido es 404")
   void tipoDesconocido() throws Exception {
     mockMvc
@@ -231,7 +265,7 @@ class AccionesControllerTest {
   @Test
   @DisplayName("Un error a mitad del stream llega como error-servidor, no como corte mudo")
   void errorEnElStream() throws Exception {
-    when(acciones.ejecutar(any(), any(), any(), any()))
+    when(acciones.ejecutar(any(), any(), any(), any(), any()))
         .thenReturn(
             new ResultadoDeAccion(
                 "Resumen de 1 documento: a.md",
@@ -379,7 +413,7 @@ class AccionesControllerTest {
                 .param("documentos", "1")
                 .param("destino", "xx"))
         .andExpect(status().isBadRequest());
-    verify(acciones, never()).ejecutar(any(), any(), any(), any());
+    verify(acciones, never()).ejecutar(any(), any(), any(), any(), any());
     verify(acciones, never()).traducirDocumentos(any(), any(), any(), any());
   }
 

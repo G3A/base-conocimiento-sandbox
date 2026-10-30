@@ -9,6 +9,7 @@ import co.g3a.baseconocimiento.compartido.Dominio.Cita;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +49,7 @@ class PresupuestoDeContextoTest {
     assertThat(docs.get(1).tramos()).hasSize(5).allMatch(t -> t.length() <= 50);
     assertThat(docs.get(1).cuota()).isEqualTo(60);
 
-    String contexto = PresupuestoDeContexto.contexto(docs, Map.of(20L, "notas de B"));
+    String contexto = PresupuestoDeContexto.contexto(docs, Map.of(20L, "notas de B"), Set.of());
     assertThat(contexto)
         .contains("[1] A (file:///A)")
         .contains("[2] B (file:///B)")
@@ -56,6 +57,9 @@ class PresupuestoDeContextoTest {
         .contains("notas de B")
         .doesNotContain("bbbbb");
     assertThat(contexto.chars().filter(c -> c == 'z').count()).isEqualTo(40);
+    assertThat(PresupuestoDeContexto.contexto(docs, Map.of(20L, "notas de B"), Set.of(20L)))
+        .contains("leido por capitulos")
+        .doesNotContain("leido completo");
   }
 
   @Test
@@ -83,7 +87,7 @@ class PresupuestoDeContextoTest {
               assertThat(c.pasadas()).isEqualTo(1);
             });
     assertThat(docs).allMatch(d -> d.cuota() == 700 && d.tramos().size() == 1);
-    String contexto = PresupuestoDeContexto.contexto(docs, notas);
+    String contexto = PresupuestoDeContexto.contexto(docs, notas, Set.of());
     assertThat(contexto).doesNotContain("xxxx");
     assertThat(contexto.chars().filter(c -> c == 'k').count()).isEqualTo(6000);
   }
@@ -102,7 +106,7 @@ class PresupuestoDeContextoTest {
 
     assertThat(PresupuestoDeContexto.cobertura(docs)).allMatch(c -> c.pasadas() == 0);
     assertThat(docs).noneMatch(DocumentoPlanificado::porPasadas);
-    assertThat(PresupuestoDeContexto.contexto(docs, Map.of()))
+    assertThat(PresupuestoDeContexto.contexto(docs, Map.of(), Set.of()))
         .doesNotContain("notas de lectura")
         .contains("uuuuuuuuuu")
         .contains("tttttttttt");
@@ -159,7 +163,7 @@ class PresupuestoDeContextoTest {
     assertThat(inexistente.indexado()).isFalse();
     assertThat(inexistente.seccionesTotales()).isZero();
     // El [n] del contexto y las citas cuentan solo los indexados, en ese orden.
-    assertThat(PresupuestoDeContexto.contexto(docs, Map.of()))
+    assertThat(PresupuestoDeContexto.contexto(docs, Map.of(), Set.of()))
         .contains("[1] T20 (file:///T20)")
         .contains("[2] T10 (file:///T10)")
         .doesNotContain("999");

@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -281,8 +282,11 @@ final class PresupuestoDeContexto {
    * linea que lo dice.
    *
    * @param notas las notas finales por id de documento, de los que se leyeron por pasadas
+   * @param porCapitulos los documentos que se leyeron por capitulos (issue #57): sus notas salen de
+   *     un extracto de cada capitulo, y el aviso lo dice
    */
-  static String contexto(List<DocumentoPlanificado> documentos, Map<Long, String> notas) {
+  static String contexto(
+      List<DocumentoPlanificado> documentos, Map<Long, String> notas, Set<Long> porCapitulos) {
     StringBuilder contexto = new StringBuilder();
     int n = 0;
     for (DocumentoPlanificado d : documentos) {
@@ -293,8 +297,11 @@ final class PresupuestoDeContexto {
       contexto.append("[%d] %s (%s)\n".formatted(n, d.titulo(), d.uri()));
       if (d.porPasadas()) {
         contexto.append(
-            "(Documento largo, leido completo por pasadas: lo que sigue son las notas de lectura,"
-                + " no el texto original)\n");
+            porCapitulos.contains(d.documentoId())
+                ? "(Documento largo, leido por capitulos: lo que sigue son notas de un extracto de"
+                    + " cada capitulo, no el texto completo)\n"
+                : "(Documento largo, leido completo por pasadas: lo que sigue son las notas de"
+                    + " lectura, no el texto original)\n");
         contexto.append(notas.getOrDefault(d.documentoId(), "")).append('\n');
       } else {
         for (Seccion s : d.secciones()) {

@@ -43,8 +43,8 @@ class Accionador implements Acciones {
 
   @Override
   public ResultadoDeAccion ejecutar(
-      Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma) {
-    return accionesSobreDocumentos.ejecutar(tipo, documentos, proyecto, idioma);
+      Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma, Modo modo) {
+    return accionesSobreDocumentos.ejecutar(tipo, documentos, proyecto, idioma, modo);
   }
 
   @Override

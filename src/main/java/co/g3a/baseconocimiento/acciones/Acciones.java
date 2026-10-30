@@ -59,10 +59,20 @@ public interface Acciones {
    * preguntas e ideas (salida estructurada, decision 11 del issue #38).
    */
   sealed interface EventoAccion
-      permits EventoAccion.Lectura, EventoAccion.Token, EventoAccion.Resultado {
+      permits EventoAccion.Lectura,
+          EventoAccion.CapituloLeido,
+          EventoAccion.Token,
+          EventoAccion.Resultado {
 
     /** Termino la pasada {@code pasadaActual} de {@code pasadasTotales} sobre el documento. */
     record Lectura(long documentoId, int pasadaActual, int pasadasTotales)
+        implements EventoAccion {}
+
+    /**
+     * Modo «Por capitulos» (issue #57): termino el capitulo {@code actual} de {@code total} del
+     * documento; {@code titulo} es lo que la UI muestra en el progreso.
+     */
+    record CapituloLeido(long documentoId, int actual, int total, String titulo)
         implements EventoAccion {}
 
     /** Un fragmento de prosa, tal como lo emite el LLM. */
@@ -193,8 +203,11 @@ public interface Acciones {
    *
    * @param idioma codigo ISO 639-1 del idioma en que se redacta el resultado (y las notas de
    *     lectura de los documentos largos)
+   * @param modo como se leen los documentos que no caben; {@code COMPLETO} es la lectura por
+   *     pasadas, y en {@code POR_CAPITULOS} la cobertura declara un capitulo por pasada
    */
-  ResultadoDeAccion ejecutar(Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma);
+  ResultadoDeAccion ejecutar(
+      Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma, Modo modo);
 
   /**
    * @param origen codigo ISO 639-1, o {@code null} para detectarlo por documento

@@ -26,9 +26,6 @@ import org.springframework.stereotype.Component;
 @Component
 class EstimadorDeAcciones {
 
-  /** Tope del extracto de un capitulo en el modo «Por capitulos». */
-  static final int LARGO_EXTRACTO_CAPITULO = 6000;
-
   /** Tokens de notas que se piden por capitulo. */
   static final int SALIDA_CAPITULO = 250;
 
@@ -87,7 +84,7 @@ class EstimadorDeAcciones {
     Map<Long, List<String>> rutas =
         repo.rutasDe(
             largos.stream().map(DocumentoPlanificado::documentoId).toList(), proyecto.valor());
-    int largoExtracto = Math.min(LARGO_EXTRACTO_CAPITULO, presupuesto.caracteresPorPasada());
+    int largoExtracto = Capitulos.largoExtracto(presupuesto.caracteresPorPasada());
     double segundosCapitulos = finalSegundos;
     int cubiertasCapitulos = 0;
     int capitulos = 0;

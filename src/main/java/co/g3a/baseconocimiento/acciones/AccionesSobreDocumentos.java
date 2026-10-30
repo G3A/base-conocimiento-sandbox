@@ -1,12 +1,16 @@
 package co.g3a.baseconocimiento.acciones;
 
+import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion;
+import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.CapituloLeido;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Lectura;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Resultado;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion.Token;
+import co.g3a.baseconocimiento.acciones.Acciones.Modo;
 import co.g3a.baseconocimiento.acciones.Acciones.ResultadoDeAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.SinResultado;
 import co.g3a.baseconocimiento.acciones.Acciones.Tipo;
+import co.g3a.baseconocimiento.acciones.Capitulos.Capitulo;
 import co.g3a.baseconocimiento.acciones.PresupuestoDeContexto.DocumentoPlanificado;
 import co.g3a.baseconocimiento.acciones.SeccionesRepositorio.Seccion;
 import co.g3a.baseconocimiento.compartido.Dominio.ProyectoId;
@@ -17,6 +21,7 @@ import co.g3a.baseconocimiento.llm.Redactor.Pregunta;
 import co.g3a.baseconocimiento.llm.Redactor.Preguntas;
 import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +59,9 @@ class AccionesSobreDocumentos {
       "El servidor ya está atendiendo el máximo de acciones al mismo tiempo. Espera un momento y"
           + " vuelve a intentarlo.";
 
+  /** Por debajo de esto la nota de un capitulo ya no dice nada. */
+  static final int MINIMO_NOTAS_CAPITULO = 200;
+
   private final SeccionesRepositorio repo;
   private final Redactor redactor;
   private final CupoDeAcciones cupo;
@@ -73,13 +81,32 @@ class AccionesSobreDocumentos {
     this.rendimiento = rendimiento;
   }
 
+  /**
+   * Como se leen los documentos largos en el modo «Por capitulos»: sus capitulos y la ruta de cada
+   * seccion (para nombrarla en el extracto). Vacio en el modo completo.
+   */
+  private record LecturaPorCapitulos(
+      Map<Long, List<Capitulo>> capitulos, Map<Long, List<String>> rutas, int largoExtracto) {
+
+    static final LecturaPorCapitulos NINGUNA = new LecturaPorCapitulos(Map.of(), Map.of(), 0);
+  }
+
   ResultadoDeAccion ejecutar(Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma) {
+    return ejecutar(tipo, documentos, proyecto, idioma, Modo.COMPLETO);
+  }
+
+  ResultadoDeAccion ejecutar(
+      Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma, Modo modo) {
     List<Long> unicos = new ArrayList<>(new LinkedHashSet<>(documentos));
     List<Seccion> secciones = repo.seccionesDe(unicos, proyecto.valor());
     PresupuestoDeContexto presupuesto = PresupuestoDeContexto.para(propiedades, rendimiento);
     List<DocumentoPlanificado> plan = presupuesto.planificar(unicos, secciones);
     boolean hayIndexados = plan.stream().anyMatch(DocumentoPlanificado::indexado);
     String etiqueta = PresupuestoDeContexto.etiqueta(verboDe(tipo), plan);
+    LecturaPorCapitulos porCapitulos =
+        modo == Modo.POR_CAPITULOS
+            ? porCapitulos(plan, proyecto, presupuesto.caracteresPorPasada())
+            : LecturaPorCapitulos.NINGUNA;
 
     Flux<EventoAccion> eventos =
         !hayIndexados
@@ -87,13 +114,42 @@ class AccionesSobreDocumentos {
             : Flux.defer(
                 () ->
                     cupo.intentarTomar()
-                        ? conCupo(tipo, plan, presupuesto.notasPorGrupo(), idioma)
+                        ? conCupo(tipo, plan, presupuesto.notasPorGrupo(), porCapitulos, idioma)
                         : Flux.just(mensajeFijo(tipo, MENSAJE_SERVIDOR_OCUPADO)));
     return new ResultadoDeAccion(
-        etiqueta,
-        PresupuestoDeContexto.cobertura(plan),
-        PresupuestoDeContexto.citas(plan),
-        eventos);
+        etiqueta, cobertura(plan, porCapitulos), PresupuestoDeContexto.citas(plan), eventos);
+  }
+
+  private LecturaPorCapitulos porCapitulos(
+      List<DocumentoPlanificado> plan, ProyectoId proyecto, int caracteresPorPasada) {
+    List<DocumentoPlanificado> largos =
+        plan.stream().filter(DocumentoPlanificado::porPasadas).toList();
+    if (largos.isEmpty()) {
+      return LecturaPorCapitulos.NINGUNA;
+    }
+    Map<Long, List<String>> rutas =
+        repo.rutasDe(
+            largos.stream().map(DocumentoPlanificado::documentoId).toList(), proyecto.valor());
+    Map<Long, List<Capitulo>> capitulos = new LinkedHashMap<>();
+    for (DocumentoPlanificado d : largos) {
+      capitulos.put(d.documentoId(), Capitulos.agrupar(d.secciones(), rutas));
+    }
+    return new LecturaPorCapitulos(capitulos, rutas, Capitulos.largoExtracto(caracteresPorPasada));
+  }
+
+  /** Por capitulos, la cobertura declara un capitulo por pasada: es lo que la UI cuenta. */
+  private static List<CoberturaDocumento> cobertura(
+      List<DocumentoPlanificado> plan, LecturaPorCapitulos porCapitulos) {
+    return PresupuestoDeContexto.cobertura(plan).stream()
+        .map(
+            c -> {
+              List<Capitulo> propios = porCapitulos.capitulos().get(c.documentoId());
+              return propios == null
+                  ? c
+                  : new CoberturaDocumento(
+                      c.documentoId(), c.titulo(), c.uri(), c.seccionesTotales(), propios.size());
+            })
+        .toList();
   }
 
   static boolean esProsa(Tipo tipo) {
@@ -107,16 +163,25 @@ class AccionesSobreDocumentos {
 
   /** Solo con el cupo ya tomado: lo devuelve pase lo que pase. */
   private Flux<EventoAccion> conCupo(
-      Tipo tipo, List<DocumentoPlanificado> plan, int porGrupo, String idioma) {
+      Tipo tipo,
+      List<DocumentoPlanificado> plan,
+      int porGrupo,
+      LecturaPorCapitulos porCapitulos,
+      String idioma) {
     Map<Long, String> notas = new ConcurrentHashMap<>();
     // En su propio hilo: el bucle bloquea en cada llamada al LLM, y si corriera en el hilo
     // que escribe el SSE, este no vaciaria nada hasta terminar todas las pasadas y el
     // progreso llegaria de golpe al final (visto en vivo con la primera demo de #60).
     Flux<EventoAccion> lecturas =
-        Flux.<EventoAccion>create(sink -> leer(plan, porGrupo, idioma, notas, sink))
+        Flux.<EventoAccion>create(sink -> leer(plan, porGrupo, porCapitulos, idioma, notas, sink))
             .subscribeOn(Schedulers.boundedElastic());
     Flux<EventoAccion> accion =
-        Flux.defer(() -> accion(tipo, PresupuestoDeContexto.contexto(plan, notas), idioma));
+        Flux.defer(
+            () ->
+                accion(
+                    tipo,
+                    PresupuestoDeContexto.contexto(plan, notas, porCapitulos.capitulos().keySet()),
+                    idioma));
     return Flux.concat(lecturas, accion).doFinally(signal -> cupo.liberar());
   }
 
@@ -130,12 +195,20 @@ class AccionesSobreDocumentos {
   private void leer(
       List<DocumentoPlanificado> plan,
       int porGrupo,
+      LecturaPorCapitulos porCapitulos,
       String idioma,
       Map<Long, String> notas,
       FluxSink<EventoAccion> sink) {
     try {
       for (DocumentoPlanificado d : plan) {
         if (!d.porPasadas()) {
+          continue;
+        }
+        List<Capitulo> capitulos = porCapitulos.capitulos().get(d.documentoId());
+        if (capitulos != null) {
+          if (!leerPorCapitulos(d, capitulos, porCapitulos, idioma, notas, sink)) {
+            return;
+          }
           continue;
         }
         int hechas = 0;
@@ -169,6 +242,39 @@ class AccionesSobreDocumentos {
     } catch (RuntimeException e) {
       sink.error(e);
     }
+  }
+
+  /**
+   * Una llamada por capitulo con un extracto acotado de sus secciones; las notas de cada capitulo
+   * se reparten la cuota del documento. Devuelve falso si el cliente corto.
+   */
+  private boolean leerPorCapitulos(
+      DocumentoPlanificado d,
+      List<Capitulo> capitulos,
+      LecturaPorCapitulos porCapitulos,
+      String idioma,
+      Map<Long, String> notas,
+      FluxSink<EventoAccion> sink) {
+    int objetivo =
+        Math.max(
+            MINIMO_NOTAS_CAPITULO,
+            Math.min(PresupuestoDeContexto.LARGO_NOTAS, d.cuota() / capitulos.size() - 80));
+    StringBuilder juntas = new StringBuilder();
+    for (int i = 0; i < capitulos.size(); i++) {
+      if (sink.isCancelled()) {
+        return false;
+      }
+      Capitulo c = capitulos.get(i);
+      String extracto = Capitulos.extracto(c, porCapitulos.rutas(), porCapitulos.largoExtracto());
+      String nota =
+          recortar(
+              redactor.condensar("Capítulo: " + c.titulo() + "\n\n" + extracto, idioma, objetivo),
+              objetivo);
+      juntas.append("## ").append(c.titulo()).append('\n').append(nota).append("\n\n");
+      sink.next(new CapituloLeido(d.documentoId(), i + 1, capitulos.size(), c.titulo()));
+    }
+    notas.put(d.documentoId(), recortar(juntas.toString(), d.cuota()));
+    return true;
   }
 
   private Flux<EventoAccion> accion(Tipo tipo, String contexto, String idioma) {
