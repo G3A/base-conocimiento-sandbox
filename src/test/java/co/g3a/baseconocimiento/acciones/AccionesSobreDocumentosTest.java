@@ -489,6 +489,44 @@ class AccionesSobreDocumentosTest {
     EsperaDeCupo.vuelveYSeToma(cupo, "el cupo volvio al terminar");
   }
 
+  @Test
+  @DisplayName(
+      "Rapido: sin pasadas ni condensar; la llamada final ve secciones representativas y el aviso")
+  void documentoLargoRapido() {
+    var propiedades = new AccionesPropiedades(10, 1000, 8000, 1, 500);
+    List<Seccion> secciones = new ArrayList<>();
+    Map<Long, float[]> vectores = new HashMap<>();
+    for (int i = 0; i < 40; i++) {
+      secciones.add(new Seccion(i + 1, 10L, "file:///L", "L", i, "seccion " + i, "doc"));
+      vectores.put(i + 1L, new float[] {i < 20 ? 1 : 0, i < 20 ? 0 : 1, i * 0.001f});
+    }
+    secciones.add(new Seccion(41, 10L, "file:///L", "L", 40, "z".repeat(2000), "doc"));
+    SeccionesRepositorio repo = mock(SeccionesRepositorio.class);
+    when(repo.seccionesDe(any(), any())).thenReturn(secciones);
+    when(repo.rutasDe(List.of(10L), "default")).thenReturn(Map.of());
+    when(repo.embeddingsDe(List.of(10L), "default")).thenReturn(vectores);
+    Redactor redactor = mock(Redactor.class);
+    when(redactor.resumir(anyString(), eq("es"))).thenReturn(Flux.just("Resumen."));
+    var cupo = new CupoDeAcciones(propiedades);
+    var acciones = new AccionesSobreDocumentos(repo, redactor, cupo, propiedades, RENDIMIENTO);
+
+    ResultadoDeAccion resultado =
+        acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es", Modo.RAPIDO);
+
+    assertThat(resultado.cobertura())
+        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 41, 0));
+    assertThat(resultado.eventos().collectList().block()).containsExactly(new Token("Resumen."));
+    verify(redactor, never()).condensar(anyString(), anyString(), anyInt());
+    ArgumentCaptor<String> contexto = ArgumentCaptor.forClass(String.class);
+    verify(redactor).resumir(contexto.capture(), eq("es"));
+    assertThat(contexto.getValue())
+        .contains("lectura rapida")
+        .containsPattern("seccion 1?[0-9]\\b")
+        .containsPattern("seccion [23][0-9]\\b")
+        .hasSizeLessThan(1400);
+    EsperaDeCupo.vuelveYSeToma(cupo, "el cupo volvio al terminar");
+  }
+
   private static Seccion seccion(long id, long documentoId, String titulo, String texto) {
     return new Seccion(id, documentoId, "file:///" + titulo, titulo, 0, texto, "doc_section");
   }

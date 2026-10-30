@@ -29,9 +29,6 @@ class EstimadorDeAcciones {
   /** Tokens de notas que se piden por capitulo. */
   static final int SALIDA_CAPITULO = 250;
 
-  /** Caracteres por seccion en el modo «Rapido»: define cuantas representativas caben. */
-  static final int LARGO_POR_SECCION_RAPIDO = 400;
-
   /** Tokens de salida de la llamada final: prosa, ideas y cada nivel de preguntas. */
   static final int SALIDA_PROSA = 700;
 
@@ -98,7 +95,9 @@ class EstimadorDeAcciones {
       }
     }
     int cubiertasRapido =
-        Math.min(totales, propiedades.maxCaracteresContexto() / LARGO_POR_SECCION_RAPIDO);
+        largos.stream()
+            .mapToInt(d -> Math.min(d.secciones().size(), Representativas.cuantas(d.cuota())))
+            .sum();
 
     return new Estimado(
         completo.segundos() > umbralSegundos,

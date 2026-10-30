@@ -246,6 +246,21 @@ class AccionesControllerTest {
   }
 
   @Test
+  @DisplayName("modo=rapido llega a la fachada como RAPIDO")
+  void modoRapido() throws Exception {
+    when(acciones.ejecutar(any(), any(), any(), any(), eq(Modo.RAPIDO)))
+        .thenReturn(
+            new ResultadoDeAccion(
+                "Resumen de 1 documento: a.md",
+                List.of(COBERTURA),
+                List.of(CITA),
+                Flux.just(new EventoAccion.Token("Resumen."))));
+
+    assertThat(sse(get("/api/acciones/resumir").param("documentos", "1").param("modo", "rapido")))
+        .contains("Resumen.");
+  }
+
+  @Test
   @DisplayName("Un modo desconocido es 400 antes de abrir el stream")
   void modoDesconocido() throws Exception {
     mockMvc

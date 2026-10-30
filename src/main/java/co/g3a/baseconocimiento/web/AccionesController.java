@@ -118,8 +118,9 @@ class AccionesController {
    *     (con {@code KB_API_TOKEN} configurado, 401 antes: el filtro solo exceptua estas cuatro
    *     rutas exactas)
    * @param idioma codigo ISO 639-1 del resultado; ausente = español
-   * @param modo {@code completo} (por defecto) o {@code capitulos}: un {@code capitulo} por cada
-   *     capitulo leido en vez de las {@code lectura} (issue #57)
+   * @param modo {@code completo} (por defecto), {@code capitulos} (un {@code capitulo} por cada
+   *     capitulo leido en vez de las {@code lectura}) o {@code rapido} (sin lecturas: secciones
+   *     representativas y la llamada final), issue #57
    */
   @GetMapping(value = "/api/acciones/{tipo}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   ResponseEntity<Flux<ServerSentEvent<Object>>> accion(
@@ -241,12 +242,13 @@ class AccionesController {
     };
   }
 
-  /** Ausente = completo; el modo rapido llega en la fase siguiente del issue #57. */
+  /** Ausente = completo. */
   private static Modo modoDe(String modo) {
     return switch (modo == null ? "" : modo.strip().toLowerCase(Locale.ROOT)) {
       case "", "completo" -> Modo.COMPLETO;
       case "capitulos" -> Modo.POR_CAPITULOS;
-      default -> throw new IllegalArgumentException("modo debe ser completo o capitulos");
+      case "rapido" -> Modo.RAPIDO;
+      default -> throw new IllegalArgumentException("modo debe ser completo, capitulos o rapido");
     };
   }
 

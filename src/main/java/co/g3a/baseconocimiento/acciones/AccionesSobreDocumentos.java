@@ -21,6 +21,7 @@ import co.g3a.baseconocimiento.llm.Redactor.Pregunta;
 import co.g3a.baseconocimiento.llm.Redactor.Preguntas;
 import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -107,6 +108,7 @@ class AccionesSobreDocumentos {
         modo == Modo.POR_CAPITULOS
             ? porCapitulos(plan, proyecto, presupuesto.caracteresPorPasada())
             : LecturaPorCapitulos.NINGUNA;
+    Map<Long, String> rapidas = modo == Modo.RAPIDO ? lecturaRapida(plan, proyecto) : Map.of();
 
     Flux<EventoAccion> eventos =
         !hayIndexados
@@ -114,10 +116,20 @@ class AccionesSobreDocumentos {
             : Flux.defer(
                 () ->
                     cupo.intentarTomar()
-                        ? conCupo(tipo, plan, presupuesto.notasPorGrupo(), porCapitulos, idioma)
+                        ? conCupo(
+                            tipo,
+                            plan,
+                            presupuesto.notasPorGrupo(),
+                            porCapitulos,
+                            rapidas,
+                            modo,
+                            idioma)
                         : Flux.just(mensajeFijo(tipo, MENSAJE_SERVIDOR_OCUPADO)));
     return new ResultadoDeAccion(
-        etiqueta, cobertura(plan, porCapitulos), PresupuestoDeContexto.citas(plan), eventos);
+        etiqueta,
+        cobertura(plan, porCapitulos, rapidas),
+        PresupuestoDeContexto.citas(plan),
+        eventos);
   }
 
   private LecturaPorCapitulos porCapitulos(
@@ -137,17 +149,46 @@ class AccionesSobreDocumentos {
     return new LecturaPorCapitulos(capitulos, rutas, Capitulos.largoExtracto(caracteresPorPasada));
   }
 
-  /** Por capitulos, la cobertura declara un capitulo por pasada: es lo que la UI cuenta. */
+  /**
+   * Modo «Rapido»: por cada documento largo, las secciones que lo representan (k-means sobre sus
+   * embeddings) hasta llenar su cuota. Sin llamadas al LLM: son las notas con que entra.
+   */
+  private Map<Long, String> lecturaRapida(List<DocumentoPlanificado> plan, ProyectoId proyecto) {
+    List<DocumentoPlanificado> largos =
+        plan.stream().filter(DocumentoPlanificado::porPasadas).toList();
+    if (largos.isEmpty()) {
+      return Map.of();
+    }
+    List<Long> ids = largos.stream().map(DocumentoPlanificado::documentoId).toList();
+    Map<Long, List<String>> rutas = repo.rutasDe(ids, proyecto.valor());
+    Map<Long, float[]> vectores = repo.embeddingsDe(ids, proyecto.valor());
+    Map<Long, String> notas = new HashMap<>();
+    for (DocumentoPlanificado d : largos) {
+      List<Seccion> elegidas =
+          Representativas.elegir(d.secciones(), vectores, Representativas.cuantas(d.cuota()));
+      notas.put(d.documentoId(), Capitulos.extracto(new Capitulo("", elegidas), rutas, d.cuota()));
+    }
+    return notas;
+  }
+
+  /**
+   * Las pasadas que la UI va a contar: por capitulos, un capitulo por pasada; en lectura rapida,
+   * ninguna.
+   */
   private static List<CoberturaDocumento> cobertura(
-      List<DocumentoPlanificado> plan, LecturaPorCapitulos porCapitulos) {
+      List<DocumentoPlanificado> plan,
+      LecturaPorCapitulos porCapitulos,
+      Map<Long, String> rapidas) {
     return PresupuestoDeContexto.cobertura(plan).stream()
         .map(
             c -> {
               List<Capitulo> propios = porCapitulos.capitulos().get(c.documentoId());
-              return propios == null
-                  ? c
-                  : new CoberturaDocumento(
-                      c.documentoId(), c.titulo(), c.uri(), c.seccionesTotales(), propios.size());
+              int pasadas =
+                  rapidas.containsKey(c.documentoId())
+                      ? 0
+                      : propios == null ? c.pasadas() : propios.size();
+              return new CoberturaDocumento(
+                  c.documentoId(), c.titulo(), c.uri(), c.seccionesTotales(), pasadas);
             })
         .toList();
   }
@@ -167,8 +208,10 @@ class AccionesSobreDocumentos {
       List<DocumentoPlanificado> plan,
       int porGrupo,
       LecturaPorCapitulos porCapitulos,
+      Map<Long, String> rapidas,
+      Modo modo,
       String idioma) {
-    Map<Long, String> notas = new ConcurrentHashMap<>();
+    Map<Long, String> notas = new ConcurrentHashMap<>(rapidas);
     // En su propio hilo: el bucle bloquea en cada llamada al LLM, y si corriera en el hilo
     // que escribe el SSE, este no vaciaria nada hasta terminar todas las pasadas y el
     // progreso llegaria de golpe al final (visto en vivo con la primera demo de #60).
@@ -176,12 +219,7 @@ class AccionesSobreDocumentos {
         Flux.<EventoAccion>create(sink -> leer(plan, porGrupo, porCapitulos, idioma, notas, sink))
             .subscribeOn(Schedulers.boundedElastic());
     Flux<EventoAccion> accion =
-        Flux.defer(
-            () ->
-                accion(
-                    tipo,
-                    PresupuestoDeContexto.contexto(plan, notas, porCapitulos.capitulos().keySet()),
-                    idioma));
+        Flux.defer(() -> accion(tipo, PresupuestoDeContexto.contexto(plan, notas, modo), idioma));
     return Flux.concat(lecturas, accion).doFinally(signal -> cupo.liberar());
   }
 
@@ -201,7 +239,8 @@ class AccionesSobreDocumentos {
       FluxSink<EventoAccion> sink) {
     try {
       for (DocumentoPlanificado d : plan) {
-        if (!d.porPasadas()) {
+        // Los de lectura rapida ya traen sus notas: no hay pasadas.
+        if (!d.porPasadas() || notas.containsKey(d.documentoId())) {
           continue;
         }
         List<Capitulo> capitulos = porCapitulos.capitulos().get(d.documentoId());

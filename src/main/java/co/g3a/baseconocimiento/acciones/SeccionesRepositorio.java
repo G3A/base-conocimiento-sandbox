@@ -97,4 +97,39 @@ class SeccionesRepositorio {
             });
     return rutas;
   }
+
+  /**
+   * El embedding de cada seccion que ya lo tiene, para elegir las representativas del modo «Rapido»
+   * (issue #57). Las que el worker todavia no proceso no aparecen.
+   */
+  Map<Long, float[]> embeddingsDe(List<Long> documentoIds, String projectId) {
+    if (documentoIds.isEmpty()) {
+      return Map.of();
+    }
+    Map<Long, float[]> vectores = new HashMap<>();
+    jdbc.sql(
+            """
+            SELECT c.id, c.embedding::text AS embedding
+            FROM chunks c
+            WHERE c.document_id IN (:documentoIds) AND c.project_id = :projectId
+              AND c.embedding IS NOT NULL
+            """)
+        .param("documentoIds", documentoIds)
+        .param("projectId", projectId)
+        .query(
+            rs -> {
+              vectores.put(rs.getLong("id"), vector(rs.getString("embedding")));
+            });
+    return vectores;
+  }
+
+  /** {@code "[0.1,0.2,...]"}, la forma de texto de pgvector. */
+  static float[] vector(String texto) {
+    String[] partes = texto.substring(1, texto.length() - 1).split(",");
+    float[] v = new float[partes.length];
+    for (int i = 0; i < partes.length; i++) {
+      v[i] = Float.parseFloat(partes[i]);
+    }
+    return v;
+  }
 }

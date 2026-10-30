@@ -101,6 +101,29 @@ class AccionesRepositoriosTest {
     assertThat(repo.rutasDe(List.of(), "default")).isEmpty();
   }
 
+  @Test
+  @DisplayName("Los embeddings de las secciones que ya los tienen, como vectores")
+  void embeddingsDeLasSecciones() {
+    long fuente = crearFuente("local_docs", "docs-embeddings");
+    long doc = crearDocumento(fuente, "embeddings-a");
+    insertarChunk(doc, fuente, 0, "{}");
+    insertarChunk(doc, fuente, 1, "{}");
+    jdbc.sql(
+            """
+            UPDATE chunks SET embedding = array_fill(0.5::real, ARRAY[1024])::vector
+            WHERE document_id = :doc AND ord = 0
+            """)
+        .param("doc", doc)
+        .update();
+
+    var vectores = repo.embeddingsDe(List.of(doc), "default");
+
+    assertThat(vectores).hasSize(1);
+    float[] v = vectores.values().iterator().next();
+    assertThat(v).hasSize(1024);
+    assertThat(v[0]).isEqualTo(0.5f);
+  }
+
   private void insertarChunk(long documentoId, long fuenteId, int ord, String distilled) {
     jdbc.sql(
             """

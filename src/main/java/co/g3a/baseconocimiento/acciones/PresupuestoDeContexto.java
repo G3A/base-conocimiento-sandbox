@@ -1,6 +1,7 @@
 package co.g3a.baseconocimiento.acciones;
 
 import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
+import co.g3a.baseconocimiento.acciones.Acciones.Modo;
 import co.g3a.baseconocimiento.acciones.SeccionesRepositorio.Seccion;
 import co.g3a.baseconocimiento.compartido.Dominio.Cita;
 import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
@@ -11,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -282,11 +282,11 @@ final class PresupuestoDeContexto {
    * linea que lo dice.
    *
    * @param notas las notas finales por id de documento, de los que se leyeron por pasadas
-   * @param porCapitulos los documentos que se leyeron por capitulos (issue #57): sus notas salen de
-   *     un extracto de cada capitulo, y el aviso lo dice
+   * @param modo como se leyeron los documentos largos (issue #57): el aviso dice si las notas son
+   *     de todo el texto, de un extracto por capitulo o de unas secciones representativas
    */
   static String contexto(
-      List<DocumentoPlanificado> documentos, Map<Long, String> notas, Set<Long> porCapitulos) {
+      List<DocumentoPlanificado> documentos, Map<Long, String> notas, Modo modo) {
     StringBuilder contexto = new StringBuilder();
     int n = 0;
     for (DocumentoPlanificado d : documentos) {
@@ -297,11 +297,17 @@ final class PresupuestoDeContexto {
       contexto.append("[%d] %s (%s)\n".formatted(n, d.titulo(), d.uri()));
       if (d.porPasadas()) {
         contexto.append(
-            porCapitulos.contains(d.documentoId())
-                ? "(Documento largo, leido por capitulos: lo que sigue son notas de un extracto de"
-                    + " cada capitulo, no el texto completo)\n"
-                : "(Documento largo, leido completo por pasadas: lo que sigue son las notas de"
-                    + " lectura, no el texto original)\n");
+            switch (modo) {
+              case COMPLETO ->
+                  "(Documento largo, leido completo por pasadas: lo que sigue son las notas de"
+                      + " lectura, no el texto original)\n";
+              case POR_CAPITULOS ->
+                  "(Documento largo, leido por capitulos: lo que sigue son notas de un extracto de"
+                      + " cada capitulo, no el texto completo)\n";
+              case RAPIDO ->
+                  "(Documento largo, lectura rapida: lo que sigue son fragmentos de unas secciones"
+                      + " representativas, no el texto completo)\n";
+            });
         contexto.append(notas.getOrDefault(d.documentoId(), "")).append('\n');
       } else {
         for (Seccion s : d.secciones()) {
