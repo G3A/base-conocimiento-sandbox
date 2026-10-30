@@ -127,7 +127,7 @@ class AccionesSobreDocumentos {
                         : Flux.just(mensajeFijo(tipo, MENSAJE_SERVIDOR_OCUPADO)));
     return new ResultadoDeAccion(
         etiqueta,
-        cobertura(plan, porCapitulos, rapidas),
+        cobertura(plan, porCapitulos, rapidas, modo),
         PresupuestoDeContexto.citas(plan),
         eventos);
   }
@@ -178,7 +178,8 @@ class AccionesSobreDocumentos {
   private static List<CoberturaDocumento> cobertura(
       List<DocumentoPlanificado> plan,
       LecturaPorCapitulos porCapitulos,
-      Map<Long, String> rapidas) {
+      Map<Long, String> rapidas,
+      Modo modo) {
     return PresupuestoDeContexto.cobertura(plan).stream()
         .map(
             c -> {
@@ -188,7 +189,12 @@ class AccionesSobreDocumentos {
                       ? 0
                       : propios == null ? c.pasadas() : propios.size();
               return new CoberturaDocumento(
-                  c.documentoId(), c.titulo(), c.uri(), c.seccionesTotales(), pasadas);
+                  c.documentoId(),
+                  c.titulo(),
+                  c.uri(),
+                  c.seccionesTotales(),
+                  pasadas,
+                  c.modo() == null ? null : modo);
             })
         .toList();
   }
@@ -310,7 +316,7 @@ class AccionesSobreDocumentos {
               redactor.condensar("Capítulo: " + c.titulo() + "\n\n" + extracto, idioma, objetivo),
               objetivo);
       juntas.append("## ").append(c.titulo()).append('\n').append(nota).append("\n\n");
-      sink.next(new CapituloLeido(d.documentoId(), i + 1, capitulos.size(), c.titulo()));
+      sink.next(new CapituloLeido(d.documentoId(), i + 1, capitulos.size(), c.titulo(), nota));
     }
     notas.put(d.documentoId(), recortar(juntas.toString(), d.cuota()));
     return true;

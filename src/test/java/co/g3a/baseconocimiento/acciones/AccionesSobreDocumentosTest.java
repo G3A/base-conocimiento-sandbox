@@ -148,7 +148,7 @@ class AccionesSobreDocumentosTest {
     ResultadoDeAccion resultado = acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es");
 
     assertThat(resultado.cobertura())
-        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 5, 11));
+        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 5, 11, Modo.COMPLETO));
     List<EventoAccion> eventos = resultado.eventos().collectList().block();
     assertThat(eventos.stream().filter(e -> e instanceof Lectura).map(e -> (Lectura) e))
         .containsExactly(
@@ -238,7 +238,7 @@ class AccionesSobreDocumentosTest {
     assertThat(resultado.eventos().collectList().block())
         .containsExactly(new Token(AccionesSobreDocumentos.MENSAJE_SIN_DOCUMENTOS));
     assertThat(resultado.cobertura())
-        .containsExactly(new CoberturaDocumento(999L, "#999", null, 0, 0));
+        .containsExactly(new CoberturaDocumento(999L, "#999", null, 0, 0, null));
     assertThat(resultado.citas()).isEmpty();
     verifyNoInteractions(redactor);
   }
@@ -469,7 +469,7 @@ class AccionesSobreDocumentosTest {
         acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es", Modo.POR_CAPITULOS);
 
     assertThat(resultado.cobertura())
-        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 10, 5));
+        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 10, 5, Modo.POR_CAPITULOS));
     List<EventoAccion> eventos = resultado.eventos().collectList().block();
     assertThat(eventos).noneMatch(e -> e instanceof Lectura);
     assertThat(eventos.stream().filter(e -> e instanceof CapituloLeido).map(e -> (CapituloLeido) e))
@@ -514,7 +514,7 @@ class AccionesSobreDocumentosTest {
         acciones.ejecutar(Tipo.RESUMIR, List.of(10L), PROYECTO, "es", Modo.RAPIDO);
 
     assertThat(resultado.cobertura())
-        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 41, 0));
+        .containsExactly(new CoberturaDocumento(10L, "L", "file:///L", 41, 0, Modo.RAPIDO));
     assertThat(resultado.eventos().collectList().block()).containsExactly(new Token("Resumen."));
     verify(redactor, never()).condensar(anyString(), anyString(), anyInt());
     ArgumentCaptor<String> contexto = ArgumentCaptor.forClass(String.class);

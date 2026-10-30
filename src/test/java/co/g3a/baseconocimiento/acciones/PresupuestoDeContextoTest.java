@@ -43,8 +43,8 @@ class PresupuestoDeContextoTest {
     // 5 tramos; de a 2 por grupo: 5 + 3 + 2 + 1 = 11 pasadas como maximo.
     assertThat(PresupuestoDeContexto.cobertura(docs))
         .containsExactly(
-            new CoberturaDocumento(10L, "A", "file:///A", 2, 0),
-            new CoberturaDocumento(20L, "B", "file:///B", 5, 11));
+            new CoberturaDocumento(10L, "A", "file:///A", 2, 0, null),
+            new CoberturaDocumento(20L, "B", "file:///B", 5, 11, Modo.COMPLETO));
     assertThat(docs.get(0).porPasadas()).isFalse();
     assertThat(docs.get(1).tramos()).hasSize(5).allMatch(t -> t.length() <= 50);
     assertThat(docs.get(1).cuota()).isEqualTo(60);

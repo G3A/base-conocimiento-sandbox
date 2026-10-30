@@ -53,7 +53,7 @@ class AccionesControllerTest {
   private static final Cita CITA =
       new Cita("file:///vault/documentos/a.md", "a.md", "extracto", "doc_section");
   private static final CoberturaDocumento COBERTURA =
-      new CoberturaDocumento(1L, "a.md", "file:///vault/documentos/a.md", 20, 3);
+      new CoberturaDocumento(1L, "a.md", "file:///vault/documentos/a.md", 20, 3, Modo.COMPLETO);
 
   @Autowired MockMvc mockMvc;
 
@@ -234,7 +234,7 @@ class AccionesControllerTest {
                 List.of(COBERTURA),
                 List.of(CITA),
                 Flux.just(
-                    new EventoAccion.CapituloLeido(1L, 1, 3, "Introduction"),
+                    new EventoAccion.CapituloLeido(1L, 1, 3, "Introduction", "Notas."),
                     new EventoAccion.Token("Resumen."))));
 
     String cuerpo =
@@ -242,7 +242,7 @@ class AccionesControllerTest {
 
     assertThat(cuerpo)
         .contains("event:capitulo")
-        .contains("\"actual\":1,\"total\":3,\"titulo\":\"Introduction\"");
+        .contains("\"actual\":1,\"total\":3,\"titulo\":\"Introduction\",\"nota\":\"Notas.\"");
   }
 
   @Test

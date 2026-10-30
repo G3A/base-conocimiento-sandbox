@@ -40,12 +40,14 @@ public interface Acciones {
    * que cabe en su cuota, tal cual; el que no, leido por pasadas (sub-issue #60): cada tramo se
    * condensa en notas con el LLM antes de la accion, y {@code pasadas} dice cuantas llamadas son —
    * se sabe de antemano, asi la UI lo muestra antes de empezar y avanza con {@link
-   * EventoAccion.Lectura}. {@code pasadas == 0} es un documento que entro sin condensar. {@code
-   * seccionesTotales == 0} significa que el id no existe en el proyecto (o no tiene secciones
-   * indexadas todavia).
+   * EventoAccion.Lectura}. {@code pasadas == 0} sin {@code modo} es un documento que entro sin
+   * condensar. {@code seccionesTotales == 0} significa que el id no existe en el proyecto (o no
+   * tiene secciones indexadas todavia). {@code modo} es como se leyo un documento que no cabia
+   * (issue #57), y {@code null} si entro entero: en {@code RAPIDO} las pasadas son 0 igual que en
+   * uno que cabe.
    */
   record CoberturaDocumento(
-      long documentoId, String titulo, String uri, int seccionesTotales, int pasadas) {
+      long documentoId, String titulo, String uri, int seccionesTotales, int pasadas, Modo modo) {
 
     public boolean indexado() {
       return seccionesTotales > 0;
@@ -70,9 +72,10 @@ public interface Acciones {
 
     /**
      * Modo «Por capitulos» (issue #57): termino el capitulo {@code actual} de {@code total} del
-     * documento; {@code titulo} es lo que la UI muestra en el progreso.
+     * documento; {@code titulo} es lo que la UI muestra en el progreso y {@code nota} lo que el
+     * modelo saco de su extracto, para pintarlo apenas esta listo.
      */
-    record CapituloLeido(long documentoId, int actual, int total, String titulo)
+    record CapituloLeido(long documentoId, int actual, int total, String titulo, String nota)
         implements EventoAccion {}
 
     /** Un fragmento de prosa, tal como lo emite el LLM. */

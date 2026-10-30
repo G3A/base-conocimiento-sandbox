@@ -324,7 +324,12 @@ final class PresupuestoDeContexto {
         .map(
             d ->
                 new CoberturaDocumento(
-                    d.documentoId(), d.titulo(), d.uri(), d.secciones().size(), d.pasadas()))
+                    d.documentoId(),
+                    d.titulo(),
+                    d.uri(),
+                    d.secciones().size(),
+                    d.pasadas(),
+                    d.porPasadas() ? Modo.COMPLETO : null))
         .toList();
   }
 
