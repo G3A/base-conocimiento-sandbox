@@ -3,6 +3,7 @@ package co.g3a.baseconocimiento.acciones;
 import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
 import co.g3a.baseconocimiento.acciones.SeccionesRepositorio.Seccion;
 import co.g3a.baseconocimiento.compartido.Dominio.Cita;
+import co.g3a.baseconocimiento.llm.RendimientoDelModelo;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -72,6 +73,20 @@ final class PresupuestoDeContexto {
   private final int maxCaracteresLectura;
 
   /**
+   * El presupuesto de una accion: el tamano de la pasada sale de los caracteres por token que el
+   * modelo viene midiendo, por eso se arma en cada accion y no una vez al arrancar (issue #57).
+   */
+  static PresupuestoDeContexto para(
+      AccionesPropiedades propiedades, RendimientoDelModelo rendimiento) {
+    return new PresupuestoDeContexto(
+        propiedades.maxCaracteresContexto(),
+        caracteresPorPasada(
+            rendimiento.contextoTokens(),
+            rendimiento.caracteresPorToken(),
+            propiedades.maxCaracteresLectura()));
+  }
+
+  /**
    * @param maxCaracteres presupuesto total de contexto para la accion, repartido entre documentos
    * @param maxCaracteresLectura cuanto texto entra en una pasada de lectura (una llamada al LLM que
    *     devuelve notas, no prosa larga: por eso puede ser mayor que el presupuesto)
@@ -130,6 +145,11 @@ final class PresupuestoDeContexto {
       resultado.add(new DocumentoPlanificado(id, "#" + id, null, List.of(), 0, List.of(), 0));
     }
     return resultado;
+  }
+
+  /** Cuanto texto entra en una pasada de lectura. */
+  int caracteresPorPasada() {
+    return maxCaracteresLectura;
   }
 
   /**

@@ -15,22 +15,30 @@ class Accionador implements Acciones {
   private final AccionesSobreDocumentos accionesSobreDocumentos;
   private final TraductorDeDocumentos traductorDeDocumentos;
   private final TraductorDeTexto traductorDeTexto;
+  private final EstimadorDeAcciones estimador;
   private final AccionesPropiedades propiedades;
 
   Accionador(
       AccionesSobreDocumentos accionesSobreDocumentos,
       TraductorDeDocumentos traductorDeDocumentos,
       TraductorDeTexto traductorDeTexto,
+      EstimadorDeAcciones estimador,
       AccionesPropiedades propiedades) {
     this.accionesSobreDocumentos = accionesSobreDocumentos;
     this.traductorDeDocumentos = traductorDeDocumentos;
     this.traductorDeTexto = traductorDeTexto;
+    this.estimador = estimador;
     this.propiedades = propiedades;
   }
 
   @Override
   public Limites limites() {
     return new Limites(propiedades.maxDocumentos(), propiedades.maxCaracteresTexto());
+  }
+
+  @Override
+  public Estimado estimar(Tipo tipo, List<Long> documentos, ProyectoId proyecto) {
+    return estimador.estimar(tipo, documentos, proyecto);
   }
 
   @Override

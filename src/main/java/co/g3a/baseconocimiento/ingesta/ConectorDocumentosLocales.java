@@ -151,7 +151,9 @@ class ConectorDocumentosLocales {
 
         int ord = 0;
         for (ChunkATexto chunk : trocear(texto)) {
-          String distilled = Json.escribir(Map.of("summary", chunk.resumen()));
+          // La ruta va aparte del summary (issue #57): las acciones agrupan por capitulo con ella.
+          String distilled =
+              Json.escribir(Map.of("summary", chunk.resumen(), "ruta", chunk.ruta()));
           long chunkId =
               repo.insertarChunk(
                   documentoId, sourceId, proyecto, ord++, "doc_section", chunk.cuerpo(), distilled);
@@ -255,11 +257,14 @@ class ConectorDocumentosLocales {
     }
   }
 
-  private record ChunkATexto(String cuerpo, String resumen) {}
+  private record ChunkATexto(String cuerpo, String resumen, List<String> ruta) {}
 
   private static List<ChunkATexto> trocear(String texto) {
     return ChunkerEncabezados.trocear(texto).stream()
-        .map(s -> new ChunkATexto(s.cuerpo(), resumenDe(s.rutaEncabezados(), s.cuerpo())))
+        .map(
+            s ->
+                new ChunkATexto(
+                    s.cuerpo(), resumenDe(s.rutaEncabezados(), s.cuerpo()), s.rutaEncabezados()))
         .toList();
   }
 

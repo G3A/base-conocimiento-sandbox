@@ -273,6 +273,10 @@ kb:
     # orquestacion). Sumados pueden superar OLLAMA_NUM_PARALLEL; en ese caso
     # Ollama encola y la accion tarda mas, no falla.
     max-concurrentes: ${KB_ACCIONES_MAX_CONCURRENTES:2}
+    # Si leer completos los documentos elegidos tardaria mas que esto (segundos,
+    # estimado con el rendimiento medido del modelo), la UI ofrece elegir modo:
+    # completo, por capitulos o rapido (issue #57). 600 = 10 min.
+    umbral-eleccion-segundos: ${KB_ACCIONES_UMBRAL_ELECCION_SEGUNDOS:600}
 
   ingesta:
     # OJO: distinta de KB_VAULT_DIR (esa es la ruta en el HOST que el compose

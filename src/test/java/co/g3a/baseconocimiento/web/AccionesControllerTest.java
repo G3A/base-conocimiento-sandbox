@@ -16,9 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import co.g3a.baseconocimiento.acciones.Acciones;
 import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
 import co.g3a.baseconocimiento.acciones.Acciones.DocumentoATraducir;
+import co.g3a.baseconocimiento.acciones.Acciones.Estimado;
+import co.g3a.baseconocimiento.acciones.Acciones.EstimadoModo;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoTraduccion;
 import co.g3a.baseconocimiento.acciones.Acciones.Limites;
+import co.g3a.baseconocimiento.acciones.Acciones.Modo;
 import co.g3a.baseconocimiento.acciones.Acciones.ResultadoDeAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.TextoTraducido;
 import co.g3a.baseconocimiento.acciones.Acciones.Tipo;
@@ -68,6 +71,45 @@ class AccionesControllerTest {
         .perform(get("/api/acciones/limites"))
         .andExpect(status().isOk())
         .andExpect(content().string("{\"maxDocumentos\":10,\"maxCaracteresTexto\":8000}"));
+  }
+
+  @Test
+  @DisplayName("GET /api/acciones/estimado devuelve los modos con su tiempo, sin abrir stream")
+  void estimadoEsJson() throws Exception {
+    when(acciones.estimar(eq(Tipo.RESUMIR), eq(List.of(1L)), any()))
+        .thenReturn(
+            new Estimado(
+                true,
+                List.of(
+                    new EstimadoModo(Modo.COMPLETO, 39_000, 888, 888, 213),
+                    new EstimadoModo(Modo.RAPIDO, 120, 17, 888, 1))));
+
+    mockMvc
+        .perform(get("/api/acciones/estimado").param("tipo", "resumir").param("documentos", "1"))
+        .andExpect(status().isOk())
+        .andExpect(
+            content()
+                .json(
+                    """
+                    {"elegir":true,"modos":[
+                      {"modo":"COMPLETO","segundos":39000,"seccionesCubiertas":888,
+                       "seccionesTotales":888,"llamadas":213},
+                      {"modo":"RAPIDO","segundos":120,"seccionesCubiertas":17,
+                       "seccionesTotales":888,"llamadas":1}]}
+                    """));
+  }
+
+  @Test
+  @DisplayName("estimado rechaza un tipo desconocido o una lista vacia con 400 y el motivo")
+  void estimadoValida() throws Exception {
+    mockMvc
+        .perform(get("/api/acciones/estimado").param("tipo", "inventar").param("documentos", "1"))
+        .andExpect(status().isBadRequest());
+    mockMvc
+        .perform(get("/api/acciones/estimado").param("tipo", "resumir"))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().json("{\"error\":\"Elige al menos un documento\"}"));
+    verify(acciones, never()).estimar(any(), any(), any());
   }
 
   @Test

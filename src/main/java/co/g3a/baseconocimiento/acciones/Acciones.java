@@ -155,7 +155,38 @@ public interface Acciones {
    */
   record TextoTraducido(Mono<String> idiomaOrigen, String idiomaDestino, Flux<String> texto) {}
 
+  /**
+   * Como se lee un documento largo (issue #57). {@code COMPLETO} es la lectura por pasadas de #60;
+   * {@code POR_CAPITULOS} manda un extracto acotado por capitulo; {@code RAPIDO} elige secciones
+   * representativas y hace solo la llamada final.
+   */
+  enum Modo {
+    COMPLETO,
+    POR_CAPITULOS,
+    RAPIDO
+  }
+
+  /**
+   * Lo que costaria una accion en un modo, medido con el rendimiento real del modelo.
+   *
+   * @param seccionesCubiertas cuantas secciones de los documentos largos llegan al LLM (en {@code
+   *     COMPLETO}, todas)
+   * @param llamadas llamadas al LLM, contando la final
+   */
+  record EstimadoModo(
+      Modo modo, long segundos, int seccionesCubiertas, int seccionesTotales, int llamadas) {}
+
+  /**
+   * {@code elegir} es verdadero cuando leer todo pasa del umbral ({@code
+   * kb.acciones.umbral-eleccion-segundos}): la UI muestra el selector en vez de arrancar. Sin
+   * documentos largos, un unico modo {@code COMPLETO}.
+   */
+  record Estimado(boolean elegir, List<EstimadoModo> modos) {}
+
   Limites limites();
+
+  /** Cuanto tardaria la accion en cada modo, antes de empezarla. No llama al LLM. */
+  Estimado estimar(Tipo tipo, List<Long> documentos, ProyectoId proyecto);
 
   /**
    * Resumir, sintetizar, preguntas o ideas sobre los documentos elegidos, enteros.

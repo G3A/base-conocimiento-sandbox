@@ -2,6 +2,7 @@ package co.g3a.baseconocimiento.web;
 
 import co.g3a.baseconocimiento.acciones.Acciones;
 import co.g3a.baseconocimiento.acciones.Acciones.CoberturaDocumento;
+import co.g3a.baseconocimiento.acciones.Acciones.Estimado;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoAccion;
 import co.g3a.baseconocimiento.acciones.Acciones.EventoTraduccion;
 import co.g3a.baseconocimiento.acciones.Acciones.Limites;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.http.MediaType;
@@ -77,6 +79,32 @@ class AccionesController {
   @GetMapping("/api/acciones/limites")
   Limites limites() {
     return acciones.limites();
+  }
+
+  /**
+   * Cuanto tardaria la accion en cada modo, antes de abrir el stream (issue #57): con {@code
+   * elegir} la UI muestra el selector en vez de arrancar. JSON, no SSE: no llama al LLM.
+   *
+   * @param tipo {@code resumir}, {@code sintetizar}, {@code preguntas} o {@code ideas}
+   */
+  @GetMapping("/api/acciones/estimado")
+  ResponseEntity<Object> estimado(
+      @RequestParam(required = false) String tipo,
+      @RequestParam(required = false) String documentos,
+      @RequestParam(required = false) String projectId) {
+    Tipo tipoAccion = tipoDe(tipo);
+    if (tipoAccion == null) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "tipo debe ser resumir, sintetizar, preguntas o ideas"));
+    }
+    List<Long> ids;
+    try {
+      ids = idsValidados(documentos);
+    } catch (IllegalArgumentException invalida) {
+      return ResponseEntity.badRequest().body(Map.of("error", invalida.getMessage()));
+    }
+    Estimado estimado = acciones.estimar(tipoAccion, ids, ParametrosWeb.proyectoDe(projectId));
+    return ResponseEntity.ok(estimado);
   }
 
   /**

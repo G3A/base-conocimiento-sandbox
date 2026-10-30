@@ -73,23 +73,10 @@ class AccionesSobreDocumentos {
     this.rendimiento = rendimiento;
   }
 
-  /**
-   * Se arma en cada accion y no una vez al arrancar: el tamano de la pasada depende de los
-   * caracteres por token que el modelo viene midiendo (issue #57).
-   */
-  private PresupuestoDeContexto presupuesto() {
-    return new PresupuestoDeContexto(
-        propiedades.maxCaracteresContexto(),
-        PresupuestoDeContexto.caracteresPorPasada(
-            rendimiento.contextoTokens(),
-            rendimiento.caracteresPorToken(),
-            propiedades.maxCaracteresLectura()));
-  }
-
   ResultadoDeAccion ejecutar(Tipo tipo, List<Long> documentos, ProyectoId proyecto, String idioma) {
     List<Long> unicos = new ArrayList<>(new LinkedHashSet<>(documentos));
     List<Seccion> secciones = repo.seccionesDe(unicos, proyecto.valor());
-    PresupuestoDeContexto presupuesto = presupuesto();
+    PresupuestoDeContexto presupuesto = PresupuestoDeContexto.para(propiedades, rendimiento);
     List<DocumentoPlanificado> plan = presupuesto.planificar(unicos, secciones);
     boolean hayIndexados = plan.stream().anyMatch(DocumentoPlanificado::indexado);
     String etiqueta = PresupuestoDeContexto.etiqueta(verboDe(tipo), plan);
