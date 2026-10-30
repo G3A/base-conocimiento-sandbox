@@ -64,6 +64,12 @@ final class Capitulos {
     List<Seccion> actual = new ArrayList<>();
     for (Seccion s : secciones) {
       List<String> ruta = rutaDe(s, rutas);
+      // Una seccion sin ruta en medio de un capitulo (una tabla, un fragmento de codigo) es parte
+      // de ese capitulo: con jls25.pdf partia «Interfaces» en tres grupos.
+      if (ruta.isEmpty() && clave != null) {
+        actual.add(s);
+        continue;
+      }
       List<String> suya = ruta.subList(0, Math.min(nivel + 1, ruta.size()));
       if (clave != null && !clave.equals(suya)) {
         grupos.add(new Capitulo(titulo(clave), actual));

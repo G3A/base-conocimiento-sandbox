@@ -527,6 +527,16 @@ class AccionesSobreDocumentosTest {
     EsperaDeCupo.vuelveYSeToma(cupo, "el cupo volvio al terminar");
   }
 
+  @Test
+  @DisplayName("La nota de un capitulo pierde la linea de encabezado si el modelo la repitio")
+  void notaSinEncabezado() {
+    assertThat(AccionesSobreDocumentos.sinEncabezado("Capítulo: Interfaces\n\n- Una interfaz..."))
+        .isEqualTo("- Una interfaz...");
+    assertThat(AccionesSobreDocumentos.sinEncabezado("- Sin encabezado"))
+        .isEqualTo("- Sin encabezado");
+    assertThat(AccionesSobreDocumentos.sinEncabezado("Capítulo: solo esto")).isEmpty();
+  }
+
   private static Seccion seccion(long id, long documentoId, String titulo, String texto) {
     return new Seccion(id, documentoId, "file:///" + titulo, titulo, 0, texto, "doc_section");
   }

@@ -65,6 +65,21 @@ class CapitulosTest {
   }
 
   @Test
+  @DisplayName("Una sección sin ruta en medio de un capítulo se queda en ese capítulo")
+  void seccionSinRutaNoParteElCapitulo() {
+    for (int c = 1; c <= 6; c++) {
+      seccion(List.of("Capítulo " + c, c + ".1"), "texto");
+      seccion(List.of(), "una tabla suelta");
+      seccion(List.of("Capítulo " + c, c + ".2"), "texto");
+    }
+
+    List<Capitulo> capitulos = Capitulos.agrupar(secciones, rutas);
+
+    assertThat(capitulos).hasSize(6).allMatch(c -> c.secciones().size() == 3);
+    assertThat(capitulos).extracting(Capitulo::titulo).doesNotContain("Sin título");
+  }
+
+  @Test
   @DisplayName("Sin rutas, agrupa por orden en bloques de tamaño parejo")
   void sinRutasAgrupaPorOrden() {
     for (int i = 0; i < 100; i++) {

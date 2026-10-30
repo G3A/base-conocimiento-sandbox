@@ -60,6 +60,9 @@ class AccionesSobreDocumentos {
       "El servidor ya está atendiendo el máximo de acciones al mismo tiempo. Espera un momento y"
           + " vuelve a intentarlo.";
 
+  /** Lo que encabeza el extracto de un capitulo; el modelo a veces lo repite al comienzo. */
+  static final String ENCABEZADO_CAPITULO = "Capítulo: ";
+
   /** Por debajo de esto la nota de un capitulo ya no dice nada. */
   static final int MINIMO_NOTAS_CAPITULO = 200;
 
@@ -313,13 +316,28 @@ class AccionesSobreDocumentos {
       String extracto = Capitulos.extracto(c, porCapitulos.rutas(), porCapitulos.largoExtracto());
       String nota =
           recortar(
-              redactor.condensar("Capítulo: " + c.titulo() + "\n\n" + extracto, idioma, objetivo),
+              sinEncabezado(
+                  redactor.condensar(
+                      ENCABEZADO_CAPITULO + c.titulo() + "\n\n" + extracto, idioma, objetivo)),
               objetivo);
       juntas.append("## ").append(c.titulo()).append('\n').append(nota).append("\n\n");
       sink.next(new CapituloLeido(d.documentoId(), i + 1, capitulos.size(), c.titulo(), nota));
     }
     notas.put(d.documentoId(), recortar(juntas.toString(), d.cuota()));
     return true;
+  }
+
+  /**
+   * Sin la linea {@code Capítulo: ...} si el modelo la copio del prompt (visto con Granite y la
+   * especificacion de Java): el titulo ya va aparte en la UI y en el contexto.
+   */
+  static String sinEncabezado(String nota) {
+    String limpia = nota == null ? "" : nota.strip();
+    if (!limpia.startsWith(ENCABEZADO_CAPITULO)) {
+      return limpia;
+    }
+    int salto = limpia.indexOf('\n');
+    return salto < 0 ? "" : limpia.substring(salto + 1).strip();
   }
 
   private Flux<EventoAccion> accion(Tipo tipo, String contexto, String idioma) {
