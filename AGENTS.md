@@ -7,10 +7,10 @@ Sigue la convención [agents.md](https://agents.md): solo lo no obvio; lee los e
 
 - [`docs/architecture.md`](docs/architecture.md) — pipeline de 7 etapas, contenedores, módulos, retrieval de 4 señales, autenticación.
 - [`docs/java.md`](docs/java.md) — JDK, BOMs, DI, fronteras de Spring Modulith, persistencia, pruebas, estilo, gates de calidad.
-- [`docs/infrastructure.md`](docs/infrastructure.md) — Docker Compose, perfiles de modelo, CI/CD y Ruleset, hooks del agente y MCP.
+- [`docs/infrastructure.md`](docs/infrastructure.md) — Docker Compose, `llama-server` en el host, CI/CD y Ruleset, hooks del agente y MCP.
 - [`docs/data-model.md`](docs/data-model.md) · [`docs/business.md`](docs/business.md) — esquema de datos y qué es el producto.
 - [`docs/design-tokens.md`](docs/design-tokens.md) y [`COMPONENTS.md`](COMPONENTS.md) — lee `COMPONENTS.md` antes de escribir UI.
-- [`docs/adrs/`](docs/adrs) — 16 decisiones, desde la tabla única de embeddings hasta elegir cómo se lee un documento largo.
+- [`docs/adrs/`](docs/adrs) — 17 decisiones, desde la tabla única de embeddings hasta servir los modelos con llama.cpp nativo.
 - [`docs/plans/`](docs/plans) · [`docs/investigacion-vram-y-modelo-llm.md`](docs/investigacion-vram-y-modelo-llm.md) · [`docs/teams/registro-azure-bot.md`](docs/teams/registro-azure-bot.md).
 - [`docs/claims-ledger.md`](docs/claims-ledger.md) — qué afirma cada doc, su fuente y si sigue vigente.
 - [`REVIEW.md`](REVIEW.md) · [`EXPERIMENTS.md`](EXPERIMENTS.md) — qué mirar en un diff ya escrito (lo lee el servicio de Code Review; no repite las reglas de generación de este archivo) y el acuerdo sobre qué puede fallar con el agente.
@@ -18,14 +18,14 @@ Sigue la convención [agents.md](https://agents.md): solo lo no obvio; lee los e
 ## Comandos
 
 ```bash
-cp .env.example .env && make up      # levanta db, ollama, docling-serve, api
-make pull-models                     # una sola vez: embeddings + reranker
+make pull-models                     # una sola vez: llama.cpp, los GGUF y el reranker
+cp .env.example .env && make up      # llama-server en el host; db, docling-serve y api en Docker
 make hooks                           # una sola vez: instala los git hooks (Lefthook)
 make check                           # lint + build + test + test-js (pide node): la señal local de "el repo está bien"
 make gpu-check                       # qué tarjeta ve y cómo la reparte (y cómo forzarlo)
 ```
 
-`make help` lista el resto (perfiles de modelo, `seed`/`ingest`, `psql`, `format`/`lint`/`secrets`/`ci`,
+`make help` lista el resto (`llm-estado`, `seed`/`ingest`, `psql`, `format`/`lint`/`secrets`/`ci`,
 `jdk-check`, `docling-reciclar`). Prefiere el `Makefile` y `./mvnw` sobre invocaciones sueltas de Docker/Maven.
 
 ## Reglas no obvias
