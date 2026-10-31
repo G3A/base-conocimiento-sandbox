@@ -458,8 +458,8 @@ docker compose build --no-cache api && make up
 
 Todo lo pesado y persistente cae bajo `KB_DATA_DIR` (por defecto `./.data`, junto al repo): los
 GGUF del LLM y de los embeddings (`models/llm`, `models/embeddings`), el ONNX del reranker
-(`models/reranker`), el build de llama.cpp con sus logs (`llama.cpp/`) y los datos de PostgreSQL. Esto mantiene libre la unidad del
-sistema sin depender de configuración del host.
+(`models/reranker`), el build de llama.cpp con sus logs (`llama.cpp/`) y los datos de PostgreSQL.
+Esto mantiene libre la unidad del sistema sin depender de configuración del host.
 
 El contenido a ingerir vive en `KB_VAULT_DIR` (por defecto `../../vault`, **fuera** del repo), con dos
 subcarpetas fijas: `vault/documentos` (Markdown, texto, PDF, DOCX, PPTX) y `vault/repos` (repos Git
