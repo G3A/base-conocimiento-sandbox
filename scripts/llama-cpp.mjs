@@ -225,27 +225,47 @@ async function arrancarUna(instancia) {
       `KB_${instancia.nombre.toUpperCase()}_PORT.`);
   }
   if (!fs.existsSync(instancia.modelo)) {
-    fallar(`falta el modelo ${instancia.modelo}. Bajalo una sola vez con: make pull-models`);
+    fallar(`falta el modelo ${instancia.modelo}. Se baja una sola vez con: make pull-models`);
   }
   const exe = ejecutable();
   if (ES_WINDOWS && !fs.existsSync(exe)) {
-    fallar(`falta llama.cpp en ${CARPETA_BUILD}. Instalalo con: make llm-instalar`);
+    fallar(`falta llama.cpp en ${CARPETA_BUILD}. Se instala con: make llm-instalar`);
   }
   fs.mkdirSync(CARPETA_RUN, { recursive: true });
   fs.mkdirSync(CARPETA_LOGS, { recursive: true });
-  const log = fs.openSync(path.join(CARPETA_LOGS, `${instancia.nombre}.log`), 'w');
+  const rutaLog = path.join(CARPETA_LOGS, `${instancia.nombre}.log`);
+  fs.rmSync(rutaLog, { force: true });
   const args = ['-m', instancia.modelo, '--host', HOST, '--port', String(instancia.puerto),
-    ...instancia.argumentos()];
-  // detached + unref: el proceso sobrevive a make. windowsHide evita una consola por instancia.
-  const hijo = spawn(exe, args, {
-    detached: true,
-    windowsHide: true,
-    stdio: ['ignore', log, log],
-  });
+    '--log-colors', 'off', ...instancia.argumentos()];
+  const nuevo = ES_WINDOWS ? lanzarEnWindows(exe, [...args, '--log-file', rutaLog])
+    : lanzar(exe, args, rutaLog);
+  fs.writeFileSync(archivoPid(instancia), String(nuevo));
+  console.log(`  ${instancia.nombre}: arrancando (pid ${nuevo}, puerto ${instancia.puerto})`);
+}
+
+// detached + unref: el proceso sobrevive a make.
+function lanzar(exe, args, rutaLog) {
+  const log = fs.openSync(rutaLog, 'w');
+  const hijo = spawn(exe, args, { detached: true, stdio: ['ignore', log, log] });
   hijo.on('error', (e) => fallar(`no se pudo ejecutar ${exe}: ${e.message}`));
   hijo.unref();
-  fs.writeFileSync(archivoPid(instancia), String(hijo.pid));
-  console.log(`  ${instancia.nombre}: arrancando (pid ${hijo.pid}, puerto ${instancia.puerto})`);
+  return hijo.pid;
+}
+
+// En Windows un spawn de node le pasa al hijo TODOS los handles heredables que node recibio, y
+// el make.exe de 32 bits le deja varios: llama-server se quedaba con la salida de make abierta y
+// cualquier `make up | tee` (o el tail de un agente) esperaba para siempre. Start-Process sin
+// redireccion lanza por ShellExecute, que no hereda handles; el log va por --log-file.
+function lanzarEnWindows(exe, args) {
+  const comillas = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
+  const literal = (s) => `'${s.replace(/'/g, "''")}'`;
+  const script = `$p = Start-Process -FilePath ${literal(exe)} ` +
+    `-ArgumentList ${literal(args.map(comillas).join(' '))} -WindowStyle Hidden -PassThru; $p.Id`;
+  const r = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand',
+    Buffer.from(script, 'utf16le').toString('base64')], { encoding: 'utf8' });
+  const pid = entero((r.stdout || '').trim(), 0);
+  if (r.status !== 0 || !pid) fallar(`no se pudo ejecutar ${exe}: ${(r.stderr || '').trim()}`);
+  return pid;
 }
 
 async function esperarUna(instancia, segundos = 300) {
